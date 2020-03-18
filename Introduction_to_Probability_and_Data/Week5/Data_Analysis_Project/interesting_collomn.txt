@@ -1,0 +1,170 @@
+Main Survey:
+**_state**: State FIPS Code
+imonth: Interview Month
+idate: Interview Date
+sex: Respondents Sex
+	Indicate sex of respondent
+ageg: Imputed Age In Six Groups
+	Six-level imputed age category
+**_age65yr**: Reported Age In Two Age Groups Calculated Variable
+	Two-level age category
+**_ageg5yr**: Reported Age In Five-Year Age Categories Calculated Variable
+	Fourteen-level age category
+pregnant: Pregnancy Status
+	To your knowledge, are you now pregnant?
+
+General Health Problems:
+qlactlm2: Activity Limitation Due To Health Problems
+	Are you limited in any way in any activities because of physical, mental, or emotional problems?
+useequip: Health Problems Requiring Special Equipment
+	Do you now have any health problem that requires you to use special equipment, such as a cane, 
+	a wheelchair, a special bed, or a special telephone? (Include occasional use or use in certain 
+	circumstances.)
+blind: Blind Or Difficulty Seeing
+	Are you blind or do you have serious difficulty seeing, even when wearing glasses?
+decide: Difficulty Concentrating Or Remembering
+	Because of a physical, mental, or emotional condition, do you have serious difficulty concentrating, 
+	remembering, or making decisions?
+diffwalk: Difficulty Walking Or Climbing Stairs
+	Do you have serious difficulty walking or climbing stairs?
+diffdres: Difficulty Dressing Or Bathing
+	Do you have difficulty dressing or bathing?
+diffalon: Difficulty Doing Errands Alone
+	Because of a physical, mental, or emotional condition, do you have difficulty doing errands alone 
+	such as visiting a doctor?s office or shopping?
+
+
+Social Context:
+scntmony: Times Past 12 Months Worried/Stressed About Having Enough Money To Pay Your Rent
+	How often in the past 12 months would you say you were worried or stressed about having enough 
+	money to pay your rent/mortgage? Would you say you were worried or stressed
+scntmeal: Times Past 12 Months Worried/Stressed About Having Enough Money To Buy Nutritiou
+	How often in the past 12 months would you say you were worried or stressed about having enough 
+	money to buy nutritious meals? Would you say you were worried or stressed
+scntwrk1: How Many Hours Per Week Do You Work
+	About how many hours do you work per week on all of your jobs and businesses combined?
+scntlwk1: How Many Hours Per Week Did You Work
+	Thinking about the last time you worked, about how many hours did you work per week at all of 
+	your jobs and businesses combined?
+
+Inadequate Sleep:
+sleptim1: How Much Time Do You Sleep
+	I would like to ask you about your sleep pattern.
+	On average, how many hours of sleep do you get in a 24-hour period?
+
+Tobacco Use:
+smoke100: Smoked At Least 100 Cigarettes
+	Have you smoked at least 100 cigarettes in your entire life? [Note: 5 packs = 100 cigarettes]
+smokday2: Frequency Of Days Now Smoking
+	Do you now smoke cigarettes every day, some days, or not at all?
+usenow3: Use Of Smokeless Tobacco Products
+	Do you currently use chewing tobacco, snuff, or snus every day, some days, or not at all? 
+	(Snus (Swedish for snuff) is a moist smokeless tobacco, usually sold in small pouches that 
+	are placed under the lip against the gum.)[Snus (rhymes with ?goose?)]
+
+Alcohol Consumption:
+alcday5: Days In Past 30 Had Alcoholic Beverage
+	During the past 30 days, how many days per week or per month did you have at least one drink 
+	of any alcoholic beverage such as beer, wine, a malt beverage or liquor?
+avedrnk2: Avg Alcoholic Drinks Per Day In Past 30
+	One drink is equivalent to a 12-ounce beer, a 5-ounce glass of wine, or a drink with one shot 
+	of liquor. During the past 30 days, on the days when you drank, about how many drinks did you 
+	drink on the average? (A 40 ounce beer would count as 3 drinks, or a cocktail drink with 2 
+	shots would count as 2 drinks.)
+drnk3ge5:Binge Drinking
+	Considering all types of alcoholic beverages, how many times during the past 30 days did you 
+	have 5 or more drinks for men or 4 or more drinks for women on an occasion?
+maxdrnks: Most Drinks On Single Occasion Past 30 Days
+	During the past 30 days, what is the largest number of drinks you had on any occasion?
+
+Fruits and Vegetables:
+fruit1: How Many Times Did You Eat Fruit?
+	*During the past month, not counting juice, how many times per day, week, or month did you eat 
+	fruit? Count fresh, frozen, or canned fruit.(Read only if necessary: “Your best guess is fine. 
+	Include apples, bananas, applesauce, oranges, grape fruit, fruit salad, watermelon, cantaloupe 
+	or musk melon, papaya, lychees, star fruit,)*
+fvbeans: How Many Times Did You Eat Beans Or Lentils?
+	During the past month, how many times per day, week, or month did you eat cooked or canned beans, 
+	such as refried, baked, black, garbanzo beans, beans in soup, soybeans, edamame, tofu or lentils. 
+	Do NOT include long green beans.(Read only if necessary: “Include round or oval beans or peas such 
+	as navy, pinto, split peas, cow peas, garbanzo beans, lentils, soy beans and tofu. Do NOT include 
+	long green beans such as string beans, broad or winged beans, or pole beans.”)
+fvgreen: How Many Times Did You Eat Dark Green Vegetables?
+	During the past month, how many times per day, week, or month did you eat dark green vegetables for 
+	example broccoli or dark leafy greens including romaine, chard, collard greens or spinach?
+fvorang: How Many Times Did You Eat Orange-Colored Vegetables?
+	During the past month, how many times per day, week, or month did you eat orange-colored vegetables 
+	such as sweet potatoes, pumpkin, winter squash, or carrots? (Read only if needed: “Winter squash have 
+	hard, thick skins and deep yellow to orange flesh. They include acorn, buttercup, and spaghetti squash.”)
+vegetab1: How Many Times Did You Eat Other Vegetables?
+	Not counting what you just told me about, during the past month, about how many times per day, week, or 
+	month did you eat OTHER vegetables? Examples of other vegetables include tomatoes, tomato juice or V-8 
+	juice, corn, eggplant, peas, lettuce, cabbage, and white potatoes that are not fried such as baked or 
+	mashed potatoes.(Read only if needed: “Do not count vegetables you have already counted and do not include 
+	fried potatoes.”)
+
+Physical Activity:
+exerany2: Exercise In Past 30 Days
+	During the past month, other than your regular job, did you participate in any physical activities or 
+	exercises such as running, calisthenics, golf, gardening, or walking for exercise?
+exract11: Type Of Physical Activity
+	What type of physical activity or exercise did you spend the most time doing during the past month?
+exeroft1: How Many Times Walking, Running, Jogging, Or Swimming
+	How many times per week or per month did you take part in this activity during the past month?
+exerhmm1: Minutes Or Hours Walking, Running, Jogging, Or Swimming
+	And when you took part in this activity, for how many minutes or hours did you usually keep at it?
+exeroft2: How Many Times Walking, Running, Jogging, Or Swimming
+	How many times per week or per month did you take part in this activity during the past month?
+exerhmm2: Minutes Or Hours Walking, Running, Jogging, Or Swimming
+	And when you took part in this activity, for how many minutes or hours did you usually keep at it?
+
+General Health:
+genhlth: General Health
+	Would you say that in general your health is:
+physhlth: Number Of Days Physical Health Not Good
+	Now thinking about your physical health, which includes physical illness and injury, for how 
+	many days during the past 30 days was your physical health not good?
+menthlth: Number Of Days Mental Health Not Good
+	Now thinking about your mental health, which includes stress, depression, and problems with emotions, 
+	for how many days during the past 30 days was your mental health not good?
+poorhlth: Poor Physical Or Mental Health
+	During the past 30 days, for about how many days did poor physical or mental health keep you from doing
+	your usual activities, such as self-care, work, or recreation?
+
+Healthy Days (Symptoms):
+painact2: How Many Days Hard To Do Usual Activities In Past 30 Days
+	During the past 30 days, for about how many days did pain make it hard for you to do your usual 
+	activities, such as self-care, work, or recreation?
+qlmentl2: How Many Days Depressed In Past 30 Days
+	During the past 30 days, for about how may days have you felt sad, blue, or depressed?
+qlstres2: How Many Days Felt Anxious In Past 30 Days
+	During the past 30 days, for about how many days have you felt worried, tense, or anxious?
+qlhlth2: How Many Days Full Of Energy In Past 30 Days
+	During the past 30 days, for about how many days have you felt very healthy and full of energy?
+
+Mental Illness and Stigma:
+misnervs: How Often Feel Nervous Past 30 Days
+	About how often during the past 30 days did you feel nervous- would you say all of the time, 
+	most of the time, ome of the time, a little of the time or none of the time?
+mishopls: How Often Feel Hopeless Past 30 Days
+	During the past 30 days, about how often did you feel hopeless- all of the time, most of the time, 
+	some of the time, a little of the time or none of the time?
+misrstls: How Often Feel Restless Past 30 Days
+	During the past 30 days, about how often did you feel restless or fidgety? (If necessary: all, most, 
+	some, a little, or none of the time.)
+misdeprd: How Often Feel Depressed Past 30 Days
+	During the past 30 days, about how often did you feel so depressed that nothing could cheer you up? 
+	(If necessary: all, most, some, a little, or none of the time.)
+miseffrt: How Often Feel Everything Was An Effort Past 30 Days
+	During the past 30 days, about how often did you feel that everything was an effort? (If necessary: 
+	all, most, some, a little, or none of the time.)
+miswtles: How Often Feel Worthless Past 30 Days
+	During the past 30 days, about how often did you feel worthless? (If necessary: all, most, some, 
+	a little, or none of the time.)
+misnowrk: Emotional Problem Kept You From Doing Work Past 30 Days
+	During the past 30 days, for about how many days did a mental health condition or emotional problem 
+	keep you from doing your work or other usual activities? (If asked, “usual activities” includes housework, 
+	self-care, caregiving, volunteer work, attending school, studies or recreation.)
+mistmnt: Receiving Medicine Or Treatment From Health Pro For Emotional Problem
+	Are you now taking medicine or receiving treatment from a doctor or other health professional for any 
+	type of mental health condition or emotional problem?

@@ -1,0 +1,958 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+* * *
+
+## Part 1: Data
+
+This data set was prepared by The Behavioral Risk Factor Surveillance System (BRFSS) in 2013-2014
+by collecting data from randomly selected adults (aged 18 years or older) in a household.
+
+BRFSS is the United States nation’s premier system of health-related telephone surveys that collect
+state data about U.S. residents regarding their health-related risk behaviors, chronic health
+conditions, and use of preventive services.
+
+The data set represents observation about lifestyle and self-esteem health U.S. residents and does not
+represent world data, however, it can be interesting as a common understanding of relationship
+health-related data also and for population in other countries.
+
+More information about the variables you can find in the appendix at the end of the document.
+
+* * *
+
+## Part 2: Research questions
+
+In our project, we going to exploring the relationship between lifestyle peoples and their self-esteem
+health.
+
+**Research quesion 1:**
+
+As a first question, we might be interested in exploring the relationship 
+between sleeping time and self-esteem health.
+
+**Research quesion 2:**
+
+The second question would be related to research on the relationship between tobacco and alcohol use
+and self-esteem health.
+
+**Research quesion 3:**
+
+As a third question, we going to explore the relationship between physical activity and
+self-esteem health.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+**Main aspect**
+
+First, we going to create `selected_brfss2013` data set by selecting from the original 
+data set `brfss2013` some columns contain interesting information about:
+
+- record identification,
+- general health,
+- time sleep,
+- tobacco and alcohol use,
+- physical activity.
+
+Before move on, we going to stop for the moment and think a little about some common 
+aspects which can have a significant impact on our habits and health. From our point 
+of view, it's would be reasonable to make a suggestion that people who have some general 
+health problems may have different lifestyle behavior. For that reason we also going to
+add information about:
+
+- general health problems.
+
+```{r select data set}
+selected_brfss2013 <- brfss2013 %>%
+  select(sex, X_ageg5yr,                      # Record Identification
+         qlactlm2, useequip, blind, decide,   # General Health Problems
+         diffwalk, diffdres, diffalon,        # General Health Problems
+         genhlth,                             # General Health
+         sleptim1,                            # How Much Time Do You Sleep
+         smokday2,                            # Frequency Of Days Now Smoking
+         X_drnkmo4,                           # Computed Total Number Drinks A Month
+         exerany2,                            # Physical Exercise In Past 30 Days
+         exract11                             # Type Of Physical Activity
+         )
+```
+
+This data set we going to use through our research. Let's get a quick view that we got.
+
+```{r}
+head(selected_brfss2013)
+```
+
+Let's see the structure of our data set.
+
+```{r}
+str(selected_brfss2013)
+```
+
+For our research purpose, we going just lightly touch aspects of "General Health Problems"
+to make our main research more clear. Let's see more closely the structure of that information.
+
+```{r}
+str(selected_brfss2013 %>%
+      select(qlactlm2, # Activity Limitation Due To Health Problems
+             useequip, # Health Problems Requiring Special Equipment
+             blind,    # Blind Or Difficulty Seeing
+             decide,   # Difficulty Concentrating Or Remembering
+             diffwalk, # Difficulty Walking Or Climbing Stairs
+             diffdres, # Difficulty Dressing Or Bathing 
+             diffalon) # Difficulty Doing Errands Alone
+    ) 
+```
+
+As we can see, all those columns have a uniform structure and conclude 2 values: "Yes" and "No".
+
+We going unite them into one by creating new column `GHP` (General Health Problems) and summarize
+information into 2 groups:
+
+* Have General Health Problems (Yes)
+* Don't have General Health Problems (No)
+
+```{r}
+selected_brfss2013 <- selected_brfss2013 %>%
+  mutate(GHP = ifelse(qlactlm2 == "Yes" |
+                      useequip == "Yes" |
+                      blind    == "Yes" |
+                      decide   == "Yes" |
+                      diffwalk == "Yes" |
+                      diffdres == "Yes" |
+                      diffalon == "Yes",
+                      "Yes","No"))
+```
+
+Remove from our data set `selected_brfss2013` primary columns "General Health Problems".
+
+```{r}
+selected_brfss2013 <- selected_brfss2013 %>%
+  select(-(c(qlactlm2, useequip, blind, decide, diffwalk, diffdres, diffalon)))
+```
+
+Let's look on the distribution population by "General Health Problems" `GHP`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(genhlth)) %>%
+  # plot data
+  ggplot(aes(x = GHP)) +
+  geom_bar() +
+  ggtitle('Distribution population by "General Health Problems"')
+```
+
+As we can see the population who have "General Health Problems" is significant and roughly 
+represent 1/3 of the survey.
+
+Let us look at the unique values of the self-esteem of health (`genhlth`).
+
+```{r}
+unique(selected_brfss2013 %>% 
+         select(genhlth))
+```
+
+
+Also, we going convert qualitative column `genhlth` (General Health) to quantitative `n_genhlth`,
+probably it can be useful for our next steps.
+
+```{r}
+selected_brfss2013 <- selected_brfss2013 %>%
+  mutate(n_genhlth = ifelse(genhlth == "Poor",      1,
+                     ifelse(genhlth == "Fair",      2,
+                     ifelse(genhlth == "Good",      3,
+                     ifelse(genhlth == "Very good", 4,
+                     ifelse(genhlth == "Excellent", 5, NA))))))
+```
+
+Let's get some summary of the distribution self-esteem of health before plot it.
+
+```{r}
+length_without_na <- selected_brfss2013 %>%
+  filter(!is.na(GHP)) %>%
+  filter(!is.na(n_genhlth)) %>%
+  summarise(n())
+
+selected_brfss2013 %>%
+  filter(!is.na(GHP)) %>%
+  filter(!is.na(n_genhlth)) %>%
+  group_by(GHP) %>%
+  summarise(Min_h = min(n_genhlth),
+            Q1_h =  quantile(n_genhlth,0.25,type = 1),
+            Median_h = median(n_genhlth),
+            Q3_h = quantile(n_genhlth,0.75,type = 1),
+            Max_h = max(n_genhlth),
+            Mean_h = mean(n_genhlth),
+            Sd_h = sd(n_genhlth),
+            N_h = n(),
+            freq_h = n()/length(selected_brfss2013$n_genhlth))
+```
+
+Plot our data set to see the distribution of health self-esteem `n_genhlth` grouping by "General Health Problems" `GHP`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(n_genhlth)) %>%
+  # plot data
+  ggplot(aes(x = n_genhlth,
+             fill = GHP)) +
+  geom_bar(position = "dodge") +
+  ggtitle('Distribution of health self-esteem grouping by GHP')
+```
+
+Looks like our sugetion about relationship between health self-esteem (`genhlth`) and general health problems (`GHP`) was right.
+
+* (No GHP) The distribution of health self-esteem from the population without general health problems skewed right. 
+Centered at about 4 points with most scores being between 3 and 5 points.
+* (Yes GHP) The distribution of health self-esteem from the population with general health problems slightly skewed left. 
+Centered at about 3 scores with most scores being between 1 and 4 points.
+
+It is reasonable that people without general health problems rate their health better than people with GHP.
+
+
+**Research quesion 1: Relationship between 'sleeping time' and 'self-esteem health'**
+
+For the start, we going to plot sleeping time distribution `sleptim1` grouping by "General Health Problems" `GHP`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  filter(!is.na(sleptim1)) %>%
+  filter(!is.na(genhlth)) %>%
+  filter(!is.na(GHP)) %>%
+  # plot data
+  ggplot(aes(x = sleptim1)) +
+  facet_wrap('GHP') +
+  geom_histogram(binwidth = 1, position = "dodge") +
+  ggtitle('Distribution of sleeping time by GHP') +
+  labs(y = "count of observations",
+       x = "sleeping time (hours)")
+```
+
+* (No GHP) The distribution of time sleeping from the population without general health problems is roughly 
+bell-shaped. Centered at about 7 hours with most data between 5 and 9 hours. A range of roughly 17 hours
+and outliers below 4 and above 10 hours.
+* (Yes GHP) The distribution of time sleeping from the population with general health problems is roughly 
+bell-shaped. Centered at about 7 hours with most data between 4 and 10 hours. A range of roughly 17 hours
+and outliers below 3 and above 10 hours.
+
+For now, distributions of these two groups look very similar, except that what spread of distribution with 
+"GHP" is a little more variable but we will get a chance to check it. Let's get it more detailed.
+
+```{r}
+selected_brfss2013 %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(!is.na(GHP))  %>%
+  group_by(GHP) %>%
+  summarise(Min_n = min(sleptim1),
+            Q1_n =  quantile(sleptim1, 0.25, type = 1),
+            Median_n = median(sleptim1),
+            Q3_n = quantile(sleptim1, 0.75, type = 1),
+            Max_n = max(sleptim1),
+            Mean_n = mean(sleptim1),
+            Sd_n = sd(sleptim1),
+            N_n = n())
+```
+
+Now we going to plot relationship between 'sleeping time' and 'self-esteem health' using `genhlth` (General Health),
+`sleptim1` (How Much Time Do You Sleep) and `GHP`(General Health Problems). To get a more clear picture in that plot 
+we focusing on the most data of the distribution of time sleeping.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  filter(!is.na(GHP)) %>%
+  filter(!is.na(genhlth)) %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 <= 10, sleptim1 >= 4) %>%
+  # plot data
+  ggplot(aes(x = genhlth,
+             fill = as.factor(sleptim1))) +
+  facet_wrap('GHP') +
+  geom_bar(position = "fill") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Distribution sleeping time frequency by self-esteem health and GHP") +
+  labs(y = "sleeping time (frequency)",
+       x = "self-esteem health")
+```
+
+Those two plots show us a clean relationship between 'sleeping time' and 'self-esteem health',
+and that interesting that relationship is more strong for people who have some general health
+problem. Generally for worse 'self-esteem health' correspond less sleeping time. 
+Let's see it more closely.
+
+We going plot relationship between 'self-esteem health' from 'sleeping time' using `genhlth` (General Health),
+`sleptim1` (How Much Time Do You Sleep) and `GHP`(General Health Problems). To do that we going to 
+prepare our data to get a more clear picture and plotting the frequency of distribution 'self-esteem 
+health' for each usual 'sleeping time'. To not to do the plot too much complicated we are going to 
+research separately people who have and don't have GHP.
+
+Some a little more complicated preparation steps are written as comments into code. 
+
+***Don't have General Health Problems***
+
+Plot relationship between 'self-esteem health' from 'sleeping time' using `genhlth`, `sleptim1` and `GHP`, 
+where `GHP` = "No". In that plot, we going to get 'self-esteem health' frequency for each common 'sleeping time'.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, sleptim1) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "No")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 <= 9, sleptim1 >= 5)  %>%
+  group_by(sleptim1, genhlth) %>%              # grouping by 'sleeping time' and 'self-esteem health'
+  summarise(n = n()) %>%                       # count the quantity for each combination
+                                               ##     of 'sleeping time' and 'self-esteem health groups'
+  mutate(freq = n / sum(n)) %>%                # count frequency for each 'sleeping time' groups
+  
+  # plot data
+  ggplot(aes(
+    x = genhlth,
+    y = freq,
+    fill = genhlth,
+    label = scales::percent(round(freq, digits = 2))
+  )) +
+  facet_wrap('sleptim1') +
+  geom_col(position = 'dodge')  +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),
+            vjust = -0.5,
+            size = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'sleeping time' for No GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "self-esteem health")
+```
+
+That plots show us what frequency of "Excellent" and "Very good" self-esteem health growing with sleeping
+time mostly due to decreasing "Good" point of self-esteem health. Also, we can notice that after 7 hours 
+of sleeping time distribution does not change a lot, but it get significant changes in 'self-esteem health'
+in the range between 5 and 7 hours. As well this data set is observation, we cannot say that sleeping time
+affects on 'self-esteem health', but the relationship between these 2 variables definitely exist.
+
+Also, it can be interesting to see opposite relationship of distribution between 'sleeping time' from 
+'self-esteem health' using `genhlth`, `sleptim1` and `GHP`. In that plot, we going to get'sleeping time'
+frequency for each 'self-esteem health'. Let's do it.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(genhlth, sleptim1, GHP) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "No")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 <= 9, sleptim1 >= 5)  %>%
+  group_by(genhlth, sleptim1) %>%                 # grouping by 'self-esteem health' and 'sleeping time'
+  summarise(n = n()) %>%                          # count the quantity for each combination
+                                                  ##     of 'self-esteem health' and 'sleeping time'
+  mutate(freq = n / sum(n)) %>%                   # count frequency for each 'self-esteem health' groups
+  
+  # plot data
+  ggplot(aes(
+    x = sleptim1,
+    y = freq,
+    fill = as.factor(sleptim1),
+    label = scales::percent(round(freq, digits = 2))
+  )) +
+  facet_wrap('genhlth') +
+  geom_col(position = 'dodge')  +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),
+            vjust = -0.5,
+            size = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'sleeping time' for No GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "self-esteem health")
+```
+
+That plots, also, show us most the same relationship as previous. We can see significant differences in 
+self-esteem health in the range of 5-7 hours.  
+
+***Have General Health Problems***
+
+Let's do the same work for people who have general health problems, just lightly expanding the 'sleeping time'
+range. Plot relationship between 'self-esteem health' from 'sleeping time' using `genhlth`, `sleptim1` and `GHP` 
+where `GHP` = "Yes". In that plot, we going to get 'self-esteem health' frequency for each common 'sleeping time'.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, sleptim1) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "Yes")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 <= 9, sleptim1 >= 4)  %>%
+  group_by(sleptim1, genhlth) %>%              # grouping by 'sleeping time' and 'self-esteem health'
+  summarise(n = n()) %>%                       # count the quantity for each combination
+                                               ##     of 'sleeping time' and 'self-esteem health groups'
+  mutate(freq = n / sum(n)) %>%                # count frequency for each 'sleeping time' groups
+  
+  # plot data
+  ggplot(aes(
+    x = genhlth,
+    y = freq,
+    fill = genhlth,
+    label = scales::percent(round(freq, digits = 2))
+  )) +
+  facet_wrap('sleptim1') +
+  geom_col(position = 'dodge')  +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),
+            vjust = -0.5,
+            size = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'sleeping time' for Yes GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "self-esteem health")
+```
+
+In that case, plots show us what frequency of "Very good" and "Good" self-esteem health growing with sleeping 
+time mostly due to decreasing "Fair" and "Poor" point of self-esteem health. We also must notice how significantly 
+decreasing "Poor" point of self-esteem health from 30% to 9% as sleeping time grows from 4 to 7 hours.
+
+Let's plot relationship of distribution between 'sleeping time' from 'self-esteem health'.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(genhlth, sleptim1, GHP) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "Yes")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 <= 9, sleptim1 >= 4)  %>%
+  group_by(genhlth, sleptim1) %>%                 # grouping by 'self-esteem health' and 'sleeping time'
+  summarise(n = n()) %>%                          # count the quantity for each combination
+                                                  ##     of 'self-esteem health' and 'sleeping time'
+  mutate(freq = n / sum(n)) %>%                   # count frequency for each 'self-esteem health' groups
+  
+  # plot data
+  ggplot(aes(
+    x = sleptim1,
+    y = freq,
+    fill = as.factor(sleptim1),
+    label = scales::percent(round(freq, digits = 2))
+  )) +
+  facet_wrap('genhlth') +
+  geom_col(position = 'dodge')  +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),
+            vjust = -0.5,
+            size = 2) +
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'sleeping time' for Yes GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "sleeping time")
+```
+
+That plots, also, show us most the same relationship as previous, but from a different angle. 
+
+Finally, let's see how to change the relationship between 'sleeping time' from 'self-esteem health' for different ages,
+using `genhlth`,` sleptim1` and `X_ageg5yr`.
+Note: `X_ageg5yr` - Reported Age In Five-Year Age Categories Calculated Variable.
+
+```{r Relationship between age, sleeping time from self-esteem health}
+# prepare data
+selected_brfss2013 %>%
+  select(genhlth, sleptim1, X_ageg5yr) %>%
+  filter(!is.na(X_ageg5yr))  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(sleptim1))  %>%
+  filter(sleptim1 >= 5, sleptim1 <= 9)  %>%
+  group_by(X_ageg5yr, genhlth) %>%
+  summarise(n = mean(sleptim1)) %>%
+  
+  # plot data
+  ggplot(aes(
+    x = X_ageg5yr,
+    y = n,
+    fill = as.factor(genhlth)
+  )) +
+  geom_col(position = 'dodge')  +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'sleeping time' for Yes GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "self-esteem health")
+```
+
+The distribution shows that the relationship between 'sleeping time' from 'self-esteem health' 
+saved with age. Also, we can see that average  'sleeping time' roughly keeps before 50-55 years 
+and start lightly growing up after.
+With that, we can make an interesting remark that the average 'sleeping time' corresponding with 
+'Excellent' and "Very good' health self-esteem before 55 years more characteristically 'Fair' and 
+'Poor' rating after 70 years.  Probably, after 55 years we need to sleep more to feel ourselves better. 
+
+**Research quesion 2: Relationship between 'tobacco and alcohol use' and 'self-esteem health'**
+
+***Tobacco Use***
+
+Now we are going to explore relationship between 'tobacco and alcohol use' and 'self-esteem health'
+and for beginning to plot the frequency of days now smoking distribution grouping by gender, using
+`smokday2` and `sex`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(smokday2, sex) %>%
+  filter(!is.na(sex))  %>%
+  filter(!is.na(smokday2))  %>%
+  
+  # plot data
+  ggplot(aes(x = sex,
+             fill = smokday2)) +
+  geom_bar(position = 'fill') +
+  
+  # description
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Distribution frequency 'Now Smoking' by gender") +
+  labs(y = "now smoking (frequency)",
+       x = "gender")
+```
+
+The plot shows us approximately the same distribution 'tobacco use' for males and females. Roughly 65% do not smoke at all,
+10% smoke some days and 25% - every day. 
+
+We going plot relationship between ‘self-esteem health’ from ‘tobacco use’ using `genhlth` (General Health), `smokday2` (Frequency Of Days Now Smoking) and `GHP`(General Health Problems). As before in the first question, we going to prepare our data to get a more clear picture and plotting the frequency of distribution ‘self-esteem health’ for each ‘Frequency Of Days Now Smoking’ value. Also, we are going to separate people who have and don’t have GHP.
+
+***Don't have General Health Problems***
+
+Plot relationship between ‘self-esteem health’ from ‘Frequency Of Days Now Smoking’ using `genhlth`, `smokday2` and `GHP`, where GHP = “No”. In that plot, we going to get ‘self-esteem health’ frequency for each common ‘sleeping time’.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, smokday2) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "No")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(smokday2))  %>%
+  group_by(smokday2, genhlth) %>%           # grouping by 'Frequency Of Days Now Smoking' and 'self-esteem health'
+  summarise(n = n()) %>%                    # count the quantity for each combination 
+                                            ##     of 'Frequency Of Days Now Smoking' and 'self-esteem health groups' 
+  mutate(freq = n / sum(n)) %>%             # count frequency for each 'Frequency Of Days Now Smoking' groups
+  
+# plot data
+  ggplot(aes(x = genhlth, 
+             y = freq,
+             fill = genhlth,
+             label = scales::percent(freq))) + 
+  facet_wrap('smokday2') +
+  geom_col(position = 'dodge')  +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),    
+            vjust = -0.5,                           
+            size = 2) + 
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'Smoking' for No GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "smoking group")
+```
+
+That plots show us what frequency of “Excellent” self-esteem health growing significant from roughly 14.5% to 21.8% 
+from "every day" to "Not at all" smoking value. Also, we can see decreasing "fair" roughly on 30% from 9.8% to 6.4%.
+
+**Have General Health Problems***
+
+Let’s do the same work for people who have general health problems.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, smokday2) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "Yes")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(smokday2))  %>%
+  group_by(smokday2, genhlth) %>%           # grouping by 'Frequency Of Days Now Smoking' and 'self-esteem health'
+  summarise(n = n()) %>%                    # count the quantity for each combination 
+                                            ##     of 'Frequency Of Days Now Smoking' and 'self-esteem health groups' 
+  mutate(freq = n / sum(n)) %>%             # count frequency for each 'Frequency Of Days Now Smoking' groups
+  
+# plot data
+  ggplot(aes(x = genhlth, 
+             y = freq,
+             fill = genhlth,
+             label = scales::percent(freq))) + 
+  facet_wrap('smokday2') +
+  geom_col(position = 'dodge')  +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),    
+            vjust = -0.5,                           
+            size = 2) + 
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Distribution frequency 'self-esteem health' by 'Smoking' for GHP") +
+  labs(y = "self-esteem health (frequency)",
+       x = "smoking group")
+```
+
+Those plots don't show us the same clear picture that plots for No GHP. Nonetheless, we can see general
+improving self-esteem health from "every day" to "Not at all" smoking value.
+
+Also, can be interesting plotting average self-esteem health for 'tobacco use'. 
+Let's do it by using `n_genhlth` from `smokday2` for `sex` and wrapping by `GHP`. 
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, n_genhlth, smokday2, sex) %>%
+  filter(!is.na(sex))  %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(n_genhlth))  %>%
+  filter(!is.na(smokday2))  %>%
+  group_by(smokday2, sex, GHP) %>%           # grouping by 'Smoking', 'Gender' and 'General Health Problems'
+  summarise(mean_genhlth = mean(n_genhlth)) %>%
+  
+  # plot data
+  ggplot(aes(
+    x = smokday2,
+    y = mean_genhlth,
+    fill = sex,
+    label = round(mean_genhlth, digits = 2)
+  )) +
+  facet_wrap('GHP') +
+  geom_col(position = 'dodge')   +
+  
+  # description
+  geom_text(position = position_dodge(width = .9),
+            vjust = -0.5,
+            size = 3) +
+  scale_y_continuous() +
+  ggtitle("Distribution avarage 'self-esteem health' by 'Smoking' by Gender and GHP") +
+  labs(y = "numeric self-esteem health (average)",
+       x = "smoking group")
+```
+
+On the graph, we can see what tobacco use lightly reduce mean of 'self-esteem health'.
+
+***Alcohol Consumption***
+
+For our next step, we might be interesting to explore the relationship between ‘alcohol use’ and ‘self-esteem health’.
+
+For start let's plot distribution of Total Number Drinks A Month, using `X_drnkmo4`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(X_drnkmo4) %>%
+  filter(!is.na(X_drnkmo4))  %>%
+
+# plot data
+  ggplot(aes(x = X_drnkmo4)) + geom_histogram()
+```
+
+We got distribution skewed to the right. Centered at about 0 points with most scores roughly
+between 0 and 100 points. We have a range of roughly 470 and some of the outliers are present
+above 100 points. Let's get some summary.
+
+```{r}
+selected_brfss2013 %>%
+  filter(!is.na(X_drnkmo4)) %>%
+  summarise(Min_n = min(X_drnkmo4),
+            Q1_n =  quantile(X_drnkmo4,0.25,type = 1),
+            Median_n = median(X_drnkmo4),
+            Q3_n = quantile(X_drnkmo4,0.75,type = 1),
+            Max_n = max(X_drnkmo4),
+            Mean_n = mean(X_drnkmo4),
+            Sd_n = sd(X_drnkmo4),
+            N_n = n())
+```
+
+That distribution is quite spred. For plot we will use data inside 2 sd from the mean.
+
+Let's plot the relationship between average ‘self-esteem health’ from ‘Total Number Drinks A Month’,
+using `n_genhlth` and `X_drnkmo4`.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(n_genhlth, X_drnkmo4) %>%
+  filter(!is.na(n_genhlth))  %>%
+  filter(!is.na(X_drnkmo4))  %>%
+  filter(X_drnkmo4 <= 78)  %>%
+  group_by(X_drnkmo4) %>%           # grouping by 'Total Number Drinks A Month'
+  summarise(mean_genhlth = mean(n_genhlth)) %>%
+
+# plot data
+  ggplot(aes(x = X_drnkmo4, 
+             y = mean_genhlth, 
+             label = round(mean_genhlth, digits = 2) )) + 
+  geom_col() +
+  ggtitle("Average ‘self-esteem health’ from ‘Drinks per month’") +
+  labs(y = "self-esteem health (average)",
+       x = "drinks per month")
+```
+
+Let's try to get something from this plot. First, it looks like that 0 drink at month corresponds with little
+less average self-esteem health. Also, we can see that after some numbers of drinks per month (roughly 50)
+self-esteem health start decrease, but the relationship do not represent that plot clean. For our next step,
+we can try to unite a number of drinks into some groups. Let's do it.
+
+```{r}
+selected_brfss2013 <- selected_brfss2013 %>%
+mutate(X_drnkmo4_gr = ifelse(X_drnkmo4 == 0,      "0",
+                      ifelse(X_drnkmo4 <= 30,     "Between 0 and 1",
+                      ifelse(X_drnkmo4 <= 60,     "Between 1 and 2",
+                      ifelse(X_drnkmo4 <= 90,     "Between 2 and 3",
+                      ifelse(X_drnkmo4 <= 120,    "Between 3 and 4",
+                      ifelse(X_drnkmo4 >  120,    "More than 4", NA)))))))
+
+```
+
+Plot it, using `X_drnkmo4_gr`,`GHP`,`sex` and `n_genhlth.`
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, n_genhlth, X_drnkmo4_gr, sex) %>%
+  filter(!is.na(sex))  %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(n_genhlth))  %>%
+  filter(!is.na(X_drnkmo4_gr))  %>%
+  group_by(X_drnkmo4_gr,GHP,sex) %>%           
+  summarise(mean_genhlth = mean(n_genhlth)) %>%
+
+  
+# plot data
+  ggplot(aes(x = X_drnkmo4_gr, 
+             y = mean_genhlth,
+             fill = sex,
+             label = round(mean_genhlth, digits = 2))) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  facet_wrap('GHP') +
+  geom_col(position = 'dodge') +
+  ggtitle("'Self-esteem health' and 'Alcohol Consumption'") +
+  labs(y = "Average self-esteem health", 
+       x = "Drinks per day")
+```
+
+That plot gets more clear undersending between 'Average self-esteem' health and 'Drinks per day'.
+For both sexes 'Average self-esteem' lightly increases before 2 drinks per day and after that also
+lightly starting decrease.
+
+**Research quesion 3: Relationship between 'phisical activity' and 'self-esteem health'**
+
+In our third research question, we going to explore the relationship between 'physical activity' and 'self-esteem health'.
+For the start, we will plot physical activity distribution, using `exerany2`,`sex` and `GHP`.
+Note: exerany2 - Physical Exercise In Past 30 Days.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(exerany2, sex, GHP) %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(sex))  %>%
+  filter(!is.na(exerany2))  %>%
+
+# plot data
+  ggplot(aes(x = sex, fill = exerany2)) +
+  geom_bar(position = 'fill') +
+  facet_wrap('GHP') + 
+  ggtitle("Count of physical activity distribution by General Health Problems") +
+  labs(y = "physical exercise (frequency)", 
+       x = "physical exercise in past 30 days")
+```
+
+We can see that roughly 80% of the survey has some physical exercise in the past 30 days for 'No GHP'
+and roughly 60% with 'Yes GHP'.
+
+
+We going plot relationship between ‘self-esteem health’ from ‘physical exercise in past 30 days’ using
+`genhlth` (General Health), `exerany2` (Physical Exercise In Past 30 Days) and GHP(General Health Problems).
+Also, we are going to separate people who have and don’t have GHP.
+
+***Don’t have General Health Problems***
+
+Plot relationship between ‘self-esteem health’ from ‘physical exercise in past 30 days’ using `genhlth`,
+`exerany2` and `GHP`, where GHP = “No”. 
+In that plot, we going to get ‘self-esteem health’ frequency for ‘Physical Exercise In Past 30 Days’.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, exerany2) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "No")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(exerany2))  %>%
+  group_by(exerany2, genhlth) %>%           # grouping by 'Physical Exercise In Past 30 Days' and 'self-esteem health'
+  summarise(n = n()) %>%                    # count the quantity for each combination 
+                                            ##     of 'Physical Exercise In Past 30 Days' and 'self-esteem health groups' 
+  mutate(freq = n / sum(n)) %>%             # count frequency for each 'Physical Exercise In Past 30 Days' groups
+  
+# plot data
+  ggplot(aes(x = genhlth, 
+             y = freq,
+             fill = genhlth,
+             label = scales::percent(freq))) + 
+  facet_wrap('exerany2') +
+  geom_col(position = 'dodge')  +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),    
+            vjust = -0.5,                           
+            size = 2) + 
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Frequency of Self-esteem health by physical activity for 'No GHP'") +
+  labs(y = "frequency of self-esteem health", 
+       x = "self-esteem health")
+```
+
+That plots show us what frequency of “Excellent” and “Very good” self-esteem health growing roughly from 15.7% to 26.1%
+and 34.8% to 42.1% respectively with physical activity mostly due to decreasing “Good” point of self-esteem health.
+
+***Have General Health Problems***
+
+Let's do the same for people with GHP.
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(GHP, genhlth, exerany2) %>%
+  filter(!is.na(GHP))  %>%
+  filter(GHP == "Yes")  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(!is.na(exerany2))  %>%
+  group_by(exerany2, genhlth) %>%           # grouping by 'Physical Exercise In Past 30 Days' and 'self-esteem health'
+  summarise(n = n()) %>%                    # count the quantity for each combination 
+                                            ##     of 'Physical Exercise In Past 30 Days' and 'self-esteem health groups' 
+  mutate(freq = n / sum(n)) %>%             # count frequency for each 'Physical Exercise In Past 30 Days' groups
+  
+# plot data
+  ggplot(aes(x = genhlth, 
+             y = freq,
+             fill = genhlth,
+             label = scales::percent(freq))) + 
+  facet_wrap('exerany2') +
+  geom_col(position = 'dodge')  +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_text(position = position_dodge(width = .9),    
+            vjust = -0.5,                           
+            size = 2) + 
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Frequency of Self-esteem health by physical activity for 'No GHP'") +
+  labs(y = "frequency of self-esteem health", 
+       x = "self-esteem health")
+```
+
+In that case, we can see how significantly decreasing "Poor" self-esteem health form 22.1% to 10.5%. 
+Because this data set is observation, we can't say that physical activity affects ‘self-esteem health’,
+but the relationship between these 2 variables definitely exists.
+
+
+As the next step, it can be interesting to research a little about type of physical activity.
+
+Frequency "Type Of Physical Activity" for top 10.
+
+```{r}
+# prepare data
+top10_physical_activity <- selected_brfss2013 %>%
+  select(exract11) %>%
+  filter(!is.na(exract11))  %>%
+  group_by(exract11) %>%           
+  summarise(n = n()) %>%
+  mutate(freq = round( n / sum(n)*100, digits = 1)) %>%
+  arrange(-n) %>%
+  slice(1:10)
+
+top10_physical_activity
+```
+
+Let's see more closely for walking, running and bicycling. That type is all outdoor physical activity. 
+
+```{r}
+# prepare data
+selected_brfss2013 %>%
+  select(exract11, GHP, genhlth) %>%
+  filter(!is.na(GHP))  %>%
+  filter(!is.na(exract11))  %>%
+  filter(!is.na(genhlth))  %>%
+  filter(as.character(exract11) %in% c("Walking","Running","Bicycling"))  %>%
+  group_by(GHP, exract11,genhlth) %>%           
+  summarise(n = n()) %>%
+  mutate(freq = round(n / sum(n), digits = 4)) %>%
+  ggplot(aes(x = genhlth, 
+             y = freq,
+             fill = exract11
+             )) + 
+  geom_col(position = 'dodge')  +
+  facet_wrap('GHP') +
+  
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle('Frequency some "Type Of Physical Activity" by GHP') +
+  labs(y = "self-esteem health (frequency)", 
+       x = "self-esteem health")
+```
+
+It looks like people who running have the best self-esteem health.
+
+**Appendix: List of fields**
+
+* sex - Respondents Sex. Indicate sex of respondent.
+* X_ageg5yr - Reported Age In Five-Year Age Categories Calculated Variable.                     
+* genhlth - General Health. Would you say that in general your health is.                         
+* sleptim1 - How Much Time Do You Sleep.                           
+* smokday2 - Frequency Of Days Now Smoking. Do you now smoke cigarettes every day, some days, or not at all?                          
+* X_drnkmo4 - Computed Total Number Drinks A Month.                           
+* exerany2 - Exercise In Past 30 Days. During the past month, other than your regular job, did you participate
+in any physical activities or exercises such as running, calisthenics, golf, gardening, or walking for exercise?                           
+* exract11 - Type Of Physical Activity. What type of physical activity or exercise did you spend the most time doing during the past month?
+
+
+* n_genhlth - convert qualitative column `genhlth` (General Health) to quantitative.
+* X_drnkmo4_gr - created by grouping X_drnkmo4.
+* GHP - General Health Problems, varians was creating by uniting field below:
+
+General Health Problems:
+
+- qlactlm2 - Activity Limitation Due To Health Problems.
+- useequip - Health Problems Requiring Special Equipment.
+- blind - Blind Or Difficulty Seeing.
+- decide - Difficulty Concentrating Or Remembering.
+- diffwalk - Difficulty Walking Or Climbing Stairs.
+- diffdres - Difficulty Dressing Or Bathing.
+- diffalon - Difficulty Doing Errands Alone.
