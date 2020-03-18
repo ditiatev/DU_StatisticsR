@@ -956,3 +956,5 @@ General Health Problems:
 - diffwalk - Difficulty Walking Or Climbing Stairs.
 - diffdres - Difficulty Dressing Or Bathing.
 - diffalon - Difficulty Doing Errands Alone.
+
+- make some changes
