@@ -173,7 +173,11 @@ the mean of each sample, and store each result in a vector called
 ```{r sampling-dist}
 # type your code for the Exercise here, and Run Document
 sample_means50 %>%
-  summarise(x_mean = mean(x_bar), SE = sd(x_bar))
+  summarise(x_mean = mean(x_bar), s_med = median(x_bar), 
+            SE = sd(x_bar), s_iqr = IQR(x_bar),
+            s_min = min(x_bar), s_max = max(x_bar),
+            s_q1 = quantile(x_bar, 0.25),
+            s_q3 = quantile(x_bar, 0.75))
 ```
 
 ## Interlude: Sampling distributions
@@ -204,7 +208,14 @@ Note that for each of the 15,000 times we computed a mean, we did so from a
 </div>
 ```{r practice-sampling-dist}
 # type your code for the Exercise here, and Run Document
+sample_means_small <- ames %>%
+  rep_sample_n(size = 10,
+               reps = 25,
+               replace = TRUE) %>%
+  summarise(x_bar = mean(area))
 
+ggplot(data = sample_means_small, aes(x = x_bar)) +
+  geom_histogram(binwidth = 20)
 ```
 
 3. How many elements are there in this object called `sample_means_small`? 
@@ -217,7 +228,8 @@ Note that for each of the 15,000 times we computed a mean, we did so from a
 </ol>
 ```{r sample-means-small}
 # type your code for Question 3 here, and Run Document
-
+sample_means_small %>%
+  summarise(n())
 ```
 
 4. Which of the following is **true** about the elements in the sampling distributions you created?
@@ -344,7 +356,9 @@ shinyApp(
 </div>
 ```{r price-sample}
 # type your code for this Exercise here, and Run Document
-
+ames %>%
+  sample_n(size = 50) %>%
+  summarise(x_bar = mean(price), SE = sd(price)/sqrt(50))
 ```
 
 <div id="exercise">
