@@ -37,7 +37,6 @@ smaller samples from the full population. Let's load the data.
 
 ```{r load-data}
 data(ames)
-head(ames)
 ```
 
 We see that there are quite a few variables in the data set, enough to do a 
@@ -358,7 +357,7 @@ shinyApp(
 # type your code for this Exercise here, and Run Document
 ames %>%
   sample_n(size = 50) %>%
-  summarise(x_bar = mean(price), SE = sd(price)/sqrt(50))
+  summarise(point_estimate = mean(price))
 ```
 
 <div id="exercise">
@@ -366,7 +365,17 @@ ames %>%
 </div>
 ```{r price-sampling}
 # type your code for this Exercise here, and Run Document
+sample_means50 <- ames %>%
+  rep_sample_n(size = 50, reps = 5000, replace = TRUE) %>%
+  summarise(x_price = mean(price))
+```
 
+
+Plot sampling distribution by 5000 samples from the population of size 50 and computing 5000 sample means.
+
+```{r plot_sample_price_distribution, echo=FALSE}
+ggplot(sample_means50, aes(x = x_price)) +
+  geom_histogram(binwidth = 5000)
 ```
 
 <div id="exercise">
@@ -374,7 +383,11 @@ ames %>%
 </div>
 ```{r price-sampling-more}
 # type your code for this Exercise here, and Run Document
-
+sample_means150 <- ames %>%
+  rep_sample_n(size = 150, reps = 5000, replace = TRUE) %>%
+  summarise(x_price = mean(price))
+ggplot(sample_means50, aes(x = x_price)) +
+  geom_histogram(binwidth = 5000)
 ```
 
 * * *
@@ -391,7 +404,9 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sample-small}
 # type your code for this Exercise here, and Run Document
-
+ames %>%
+  sample_n(size = 15) %>%
+  summarise(point_estimate = mean(price))
 ```
 
 <div id="exercise">
@@ -399,7 +414,11 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sampling-small}
 # type your code for this Exercise here, and Run Document
-
+sample_means15 <- ames %>%
+  rep_sample_n(size = 15, reps = 2000, replace = TRUE) %>%
+  summarise(x_price = mean(price))
+ggplot(sample_means15, aes(x = x_price)) +
+  geom_histogram(binwidth = 5000)
 ```
 
 <div id="exercise">
@@ -407,7 +426,11 @@ summary statistics. You are welcomed to use the app for exploration.
 </div>
 ```{r price-sampling-big}
 # type your code for this Exercise here, and Run Document
-
+sample_means150 <- ames %>%
+  rep_sample_n(size = 150, reps = 2000, replace = TRUE) %>%
+  summarise(x_price = mean(price))
+ggplot(sample_means150, aes(x = x_price)) +
+  geom_histogram(binwidth = 5000)
 ```
 
 6. Which of the following is false? 
@@ -418,7 +441,11 @@ summary statistics. You are welcomed to use the app for exploration.
 </ol>
 ```{r price-sampling-compare}
 # type your code for Question 6 here, and Run Document
+sample_means150 %>%
+  summarise(sd_150 = sd(x_price), mean_150 = mean(x_price))
 
+sample_means15 %>%
+  summarise(sd_15 = sd(x_price), mean_15 = mean(x_price))
 ```
 
 <div id="license">
