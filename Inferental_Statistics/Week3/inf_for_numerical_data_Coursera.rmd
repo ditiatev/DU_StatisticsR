@@ -111,7 +111,10 @@ false about the relationship between habit and weight?
 </ol>
 ```{r habit-weight-box}
 # type your code for the Question 3 here, and Knit
-
+nc %>%
+  filter(!is.na(habit)) %>%
+  ggplot(aes(x = habit, y = weight)) +
+  geom_boxplot()
 ```
 
 The box plots show how the medians of the two distributions compare, but we can
@@ -190,8 +193,10 @@ between 0 and 1. Also note that when doing a confidence interval arguments like
 <li> We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds heavier at birth than babies born to smoker mothers. </li>
 </ol>
 ```{r habit-weight-ci}
-# type your code for the Question 5 here, and Knit
-
+inference(y = weight, x = habit, data = nc, 
+          statistic = "mean", 
+          type = "ci", 
+          method = "theoretical")
 ```
 
 By default the function reports an interval for ($\mu_{nonsmoker} - \mu_{smoker}$)
@@ -215,7 +220,11 @@ interval?
 </ol>
 ```{r weeks-ci-99}
 # type your code for Question 6 here, and Knit
-
+inference(y = weeks, data = nc, 
+          statistic = "mean", 
+          type = "ci",
+          conf_level = 0.99,
+          method = "theoretical")
 ```
 
 <div id="exercise">
@@ -223,22 +232,30 @@ interval?
 </div>
 ```{r weeks-ci-90}
 # type your code for the Exercise here, and Knit
-
+inference(y = weeks, data = nc, 
+          statistic = "mean", 
+          type = "ci",
+          conf_level = 0.90,
+          method = "theoretical")
 ```
 
 <div id="exercise">
 **Exercise**: Conduct a hypothesis test evaluating whether the average weight gained by younger mothers is different than the average weight gained by mature mothers.
 </div>
 ```{r gained-mature-ht}
-# type your code for the Exercise here, and Knit
-
+inference(y = weight, x = mature, data = nc, statistic = "mean", type = "ht", null = 0, 
+          alternative = "twosided", method = "theoretical")
 ```
 
 7. Now, a non-inference task: Determine the age cutoff for younger and mature 
 mothers. Use a method of your choice, and explain how your method works.
 ```{r cutoff-mature}
-# type your code for Question 7 here, and Knit
+# younger mother
+nc <- nc %>%
+  mutate(younger_mother = if_else(mage <= 23, "Young", "In ages"))
 
+inference(y = weight, x = younger_mother, data = nc, statistic = "mean", type = "ht", null = 0, 
+          alternative = "twosided", method = "theoretical")
 ```
 
 <div id="exercise">
@@ -254,8 +271,9 @@ your project as well.)
 </div>
 
 ```{r pick-your-own}
-# type your code for the Exercise here, and Knit
-
+inference(y = weight, x = marital, data = nc, statistic = "mean", type = "ci", 
+          #null = 0, alternative = "twosided",
+          method = "theoretical")
 ```
 
 
