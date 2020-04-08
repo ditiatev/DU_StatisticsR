@@ -251,11 +251,9 @@ inference(y = weight, x = mature, data = nc, statistic = "mean", type = "ht", nu
 mothers. Use a method of your choice, and explain how your method works.
 ```{r cutoff-mature}
 # younger mother
-nc <- nc %>%
-  mutate(younger_mother = if_else(mage <= 23, "Young", "In ages"))
-
-inference(y = weight, x = younger_mother, data = nc, statistic = "mean", type = "ht", null = 0, 
-          alternative = "twosided", method = "theoretical")
+nc %>%
+  group_by(mature) %>%
+  summarise(min_mage = min(mage),max_mage = max(mage))
 ```
 
 <div id="exercise">
