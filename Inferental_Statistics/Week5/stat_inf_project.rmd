@@ -1,0 +1,146 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+```{r set-seed}
+set.seed(15042020) 
+```
+
+
+* * *
+
+## Part 1: Data
+
+The data was provided by National Opinion Research Center at the University of Chicago [(NORC)](http://gss.norc.org/). This is the cumulative data set witch has included 29 surveys into a single file.
+
+Random sampling was used in each survey by independently drawn sample of English-speaking persons 18 years of age or over from 1972, living in non-institutional arrangements within the United States. Starting in 2006 Spanish-speakers were added to the target population.For these reasons, we can generalize this data set for all US population, but we need to be very careful in our conclusions about Spanish-speakers.
+
+
+* * *
+
+## Part 2: Research question
+
+We going to exploring the relationship between political party affiliation and family income. 
+
+The United States has two main competing political parties (Democrats and Republicans) influencing the development of the country and the whole world. In this regard, it would be interesting to know what interconnections exist between family incomes and their political views, as well as whether there is a statistically significant difference in incomes between these two groups.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+Let's get unique values for political party affiliation `partyid`.
+
+```{r}
+gss %>%
+  select('partyid') %>%
+  sapply(levels)
+```
+
+We will transform it into "Democrat", "Republican" and "Other" by creating new column `party_type`.
+
+```{r}
+gss <- gss %>% 
+  mutate(party_type = as.factor(
+    case_when(partyid == "Strong Democrat"    ~ 'Democrat',
+              partyid == "Not Str Democrat"   ~ 'Democrat',
+              partyid == "Ind,Near Dem"       ~ 'Democrat',
+              partyid == "Ind,Near Rep"       ~ 'Republican',
+              partyid == "Not Str Republican" ~ 'Republican',
+              partyid == "Strong Republican"  ~ 'Republican',
+              TRUE ~ 'Other')))
+
+gss %>%
+  select('party_type') %>%
+  sapply(levels)
+```
+
+Let's get plot of distridution of total family income in constant dollars by political party affiliation.
+
+```{r}
+# transform
+party_type <- gss %>%
+  select('party_type','coninc') %>%
+  filter(!is.na(coninc)) %>%
+  filter(party_type == c("Democrat","Republican")) %>%
+  mutate(party_type = factor(party_type, levels = c("Republican","Democrat")))
+
+# summary
+party_type %>%
+  group_by(party_type)  %>%
+  summarise(x_bar = mean(coninc), x_sd = sd(coninc), x_median = median(coninc), n = n())
+
+# plot
+party_type %>%
+  group_by(party_type)  %>%
+  ggplot(aes(x = coninc,fill = party_type)) +
+  geom_histogram(bins = 10) +
+  facet_wrap('party_type') +
+  ggtitle("Distribution of total family income in constant dollars by political party affiliation") +
+  labs(y = "count",
+       x = "constant dollars")
+```
+
+In both cases we got right-skewed distributions. Centered at 42 215 dollars for 'Republican' and 33 079 dollars for 'Democrat' with most data roughly between between 0 and  130 000 dollars for 'Republican' and between 0 and 108 000 dollars for 'Democrat'.
+
+* * *
+
+## Part 4: Inference
+
+Finally, we going to determine does this data provide statistically significant difference in total family income between 'Republican' and 'Democrat' family political party affiliation.
+
+Let's formulate **hypotheses**:
+
+- Ho: There is **NO** difference in median total family income between 'Republican' and 'Democrat' family political party affiliation.
+- Ha: There is difference in median total family income between 'Republican' and 'Democrat' family political party affiliation.
+
+
+Let's check **conditions**:
+
+From the exploratory data analysis, we got that distribution of total family income is right-skewed, hence a more accurate measure of these distributions would be median, but Сentral limit theorem can't work with such measure. Сonsequently, we should use an appropriate simulation-based method such as **Bootstrapping**.
+
+Bootstrapping does not have rigid conditions, we just need a good representative sample from the population and we have one. But still, we can check that as a sample size less than 10% of the population US, we can assume independence in each case. And also, we can mention that distributions of total family income are not extremely skewed.
+
+Because of the good sample size (8764 for Republican), we can construct our hypothesis with a high confidence level - 99% and still get a significant result.
+
+```{r}
+inference(y = coninc, x = party_type, data = party_type, 
+          statistic = "median", type = "ht", null = 0, 
+          alternative = "twosided", method = "simulation",
+          conf_level = 0.99, nsim = 15000)
+```
+
+We got *p-value < 0.0001*, which less than our significant level 0.01. This proved strong statistical evidence to **reject the null hypothesis in favor of the alternative**. That means that there's a difference in total family income between 'Republican' and 'Democrat' family political party affiliation living in US.
+
+Also, because we have appropriate data and Bootstrapping provides us the opportunity to build a confidence interval, we going to create a 99% confidence level.
+
+```{r}
+inference(y = coninc, x = party_type, data = party_type, 
+          statistic = "median", type = "ci", method = "simulation",
+          boot_method = 'perc',
+          conf_level = 0.99, nsim = 15000)
+```
+
+That's mean that we are 99% confident that median total family income which affiliated themself with Republican party has between 8588 to 11506 dollars more total income then Democrat affiliated family in current dollars.
+
+So, hypothesis testing and confidence interval agree with each other.
