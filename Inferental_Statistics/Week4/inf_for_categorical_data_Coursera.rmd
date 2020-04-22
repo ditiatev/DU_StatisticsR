@@ -118,11 +118,6 @@ The inferential tools for estimating population proportion are analogous to thos
 
 If the conditions for inference are reasonable, we can either calculate the standard error and construct the interval by hand, or allow the `inference` function to do it for us.
 
-```{r}
-0.05+1.96*sqrt(0.05*0.95/1002)
-```
-
-
 ```{r us-atheism-ci}
 inference(y = response, data = us12, statistic = "proportion", type = "ci", method = "theoretical", success = "atheist")
 ```
@@ -143,15 +138,38 @@ Although formal confidence intervals and hypothesis tests don't show up in the r
 </ol>
 ```{r me-perc-atheist-us12}
 # type your code for Question 8 here, and Knit
-
+1.96*sqrt(0.05*0.95/1002)
 ```
 
 <div id="exercise">
 **Exercise**: Using the inference function, calculate confidence intervals for the proportion of atheists in 2012 in two other countries of your choice, and report the associated margins of error. Be sure to note whether the conditions for inference are met. It may be helpful to create new data sets for each of the two countries first, and then use these data sets in the `inference` function to construct the confidence intervals.
 </div>
+
+```{r}
+atheism %>% 
+  mutate(year = as.factor(year)) %>%
+  sapply(levels)
+```
+
 ```{r me-perc-atheist-other-countries}
 # type your code for the Exercise here, and Knit
+rus12 <- atheism %>%
+  filter(nationality == "Russian Federation" , atheism$year == "2012")
+pl12 <- atheism %>%
+  filter(nationality == "Poland" , atheism$year == "2012")
+```
 
+### "Russian Federation"
+
+```{r}
+inference(y = response, data = rus12, 
+          statistic = "proportion", type = "ci", method = "theoretical", success = "atheist")
+```
+
+### "Poland"
+
+```{r}
+inference(y = response, data = pl12, statistic = "proportion", type = "ci", method = "theoretical", success = "atheist")
 ```
 
 ## How does the proportion affect the margin of error?
@@ -190,7 +208,13 @@ Answer the following two questions using the `inference` function. As always, wr
 </ol>
 ```{r spain-05-12}
 # type your code for Question 10 here, and Knit
+spain_05_12 <- atheism %>%
+  filter(nationality == "Spain")
 
+inference(y = response, x = as.factor(year), data = spain_05_12, 
+          statistic = "proportion", type = "ht",
+          null = 0, alternative = "twosided",
+          method = "theoretical", success = "atheist")
 ```
 
 11. True / False: There is convincing evidence that the United States has seen a change in its atheism index between 2005 and 2012.
@@ -200,7 +224,13 @@ Answer the following two questions using the `inference` function. As always, wr
 </ol>
 ```{r us-05-12}
 # type your code for Question 11 here, and Knit
+us_05_12 <- atheism %>%
+  filter(nationality == "United States")
 
+inference(y = response, x = as.factor(year), data = us_05_12, 
+          statistic = "proportion", type = "ht",
+          null = 0, alternative = "twosided",
+          method = "theoretical", success = "atheist")
 ```
 
 
@@ -213,7 +243,7 @@ Answer the following two questions using the `inference` function. As always, wr
 </ol>
 ```{r type1}
 # type your code for Question 12 here, and Knit
-
+39*0.05
 ```
 
 13. Suppose you're hired by the local government to estimate the proportion of residents that attend a religious service on a weekly basis. According to the guidelines, the estimate must have a margin of error no greater than 1% with 95% confidence. You have no idea what to expect for $p$. How many people would you have to sample to ensure that you are within the guidelines? <br><br> *Hint:* Refer to your plot of the relationship between $p$ and margin of error. Do not use the data set to answer this question.
@@ -225,7 +255,7 @@ Answer the following two questions using the `inference` function. As always, wr
 </ol>
 ```{r sample-size}
 # type your code for Question 13 here, and Knit
-
+((1.96^2)*0.5*0.5)/(0.01^2)
 ```
 
 <div id="license">

@@ -1,0 +1,53 @@
+1) How many people were interviewed for this survey?
+- A poll conducted by WIN-Gallup International surveyed 51,927 people from 57 countries.
+
+2) Which of the following methods were used to gather information?
+- All of the above
+
+3) True / False: In the first paragraph, several key findings are reported.
+These percentages appear to be sample statistics.
+- True
+
+4) True / False:The title of the report is “Global Index of Religiosity and Atheism”. 
+To generalize the report’s findings to the global human population, 
+We must assume that the sample was a random sample from the entire population 
+in order to be able to generalize the results to the global human population. 
+This seems to be a reasonable assumption.
+- True // False
+
+5) What does each row of Table 6 correspond to?
+- Religions // Countries
+
+6) What does each row of atheism correspond to?
+- Countries // Religions // Individual persons
+
+7) Next, calculate the proportion of atheist responses in the United States in 2012,
+i.e. in us12. True / False: This percentage agrees with the percentage in Table~6.
+- True
+
+8) Based on the R output, what is the margin of error for the estimate 
+of the proportion of the proportion of atheists in US in 2012?
+- The margin of error for the estimate of the proportion of atheists in the US
+ in 2012 is 0.0135.
+
+9) Which of the following is false about the relationship between p and ME.
+- The most conservative estimate when calculating a confidence interval occurs when p is set to 1.
+
+10) True / False: There is convincing evidence that Spain has seen a change in its atheism
+index between 2005 and 2012. 
+- False
+
+11) True / False: There is convincing evidence that the United States has seen a change 
+in its atheism index between 2005 and 2012.
+- True
+
+12) If in fact there has been no change in the atheism index in the countries listed in Table 4,
+ in how many of those countries would you expect to detect a change (at a significance level
+ of 0.05) simply by chance? 
+- 1.95
+
+13) Suppose you’re hired by the local government to estimate the proportion of residents that attend
+ a religious service on a weekly basis. According to the guidelines, the estimate must have a margin
+ of error no greater than 1% with 95% confidence. You have no idea what to expect for p. How many people
+ would you have to sample to ensure that you are within the guidelines? 
+- At least 9604 people
