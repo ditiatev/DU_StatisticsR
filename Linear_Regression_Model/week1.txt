@@ -1,0 +1,26 @@
+1. What type of plot would you use to display the relationship between `runs` and one of the other numerical variables? 
+- scatterplot
+
+2. Plot the relationship between `runs` and `at_bats`, using `at_bats` as the explanatory variable. <br> The relationship appears to be
+- linear
+
+3. Looking at your plot from the previous exercise, which of the following best describe the relationship between these two variables?
+- The relationship is positive, linear, and very weak. One of the potential outliers is a team with approximately 5520 at bats.
+
+4. Fit a new model that uses `homeruns` to predict `runs`.  Using the estimates from the R output, write the equation of the regression line. What does the slope tell us in the context of the relationship between success of a team and its home runs?
+- For each additional home run, the model predicts 1.83 more runs, on average.
+
+5. What is the residual for the prediction of runs for a team with 5,579 at-bats? Choose the closest answer. 
+- -15.32
+
+6. Which of the following statements about the residual plot is false? 
+- <li> The residuals show a curved pattern. </li> 
+
+7. Which of the following is true? 
+- <li> The residuals are fairly symmetric, with only a slightly longer tail on the right, hence it would be appropriate to deem the the normal distribution of residuals condition met. </li>
+
+8. Based on the residuals plot from earlier, the constant variability condition appears to be met. 
+- True
+
+9. Now that you can summarize the linear relationship between two variables, investigate the relationships between `runs` and each of the other five traditional variables. Which variable best predicts `runs`? Support your conclusion using the graphical and numerical methods we've discussed.
+- <li> batting average </li>

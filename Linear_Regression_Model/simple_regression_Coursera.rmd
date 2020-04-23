@@ -401,7 +401,6 @@ m1_new_obs %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   xlab("new_obs") +
   ylab("Residuals")
-summary(m1_new_obs)
 
 m1_new_slug %>%
   ggplot(aes(x = .fitted, y = .resid)) +
@@ -409,7 +408,6 @@ m1_new_slug %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   xlab("new_slug") +
   ylab("Residuals")
-summary(m1_new_slug)
 
 m1_new_onbase %>%
   ggplot(aes(x = .fitted, y = .resid)) +
@@ -417,6 +415,9 @@ m1_new_onbase %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   xlab("new_onbase") +
   ylab("Residuals")
+
+summary(m1_new_obs)
+summary(m1_new_slug)
 summary(m1_new_onbase)
 ```
 
