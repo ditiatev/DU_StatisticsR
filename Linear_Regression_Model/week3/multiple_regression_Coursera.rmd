@@ -193,7 +193,8 @@ about the initial scatterplot?
 </div>
 ```{r jitter}
 # type your code for the Exercise here, and Knit
-
+ggplot(data = evals, aes(x = bty_avg, y = score)) +
+  geom_jitter()
 ```
 
 Let's see if the apparent trend in the plot is something more than 
@@ -222,7 +223,8 @@ interpret the slope.
 </div>
 ```{r summary-model}
 # type your code for the Exercise here, and Knit
-
+m1 <- lm(score ~ bty_avg, data = evals)
+summary(m1)
 ```
 
 4. Average beauty score is a statistically significant predictor of evaluation score. 
@@ -239,8 +241,22 @@ interpret the slope.
 <li> Independent observations: Classes sampled randomly, no order effect. </li>
 </ol>
 ```{r diag-score-bty_avg}
-# type your code for the Question 5 here, and Knit
+m1 %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals")
 
+m1 %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram() +
+  xlab("Residuals")
+
+m1 %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line()
 ```
 
 ## Multiple linear regression
@@ -288,8 +304,22 @@ summary(m_bty_gen)
 </ol>
 </div>
 ```{r diag-mlr-model}
-# type your code for the Exercise here, and Knit
+m_bty_gen %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals")
 
+m_bty_gen %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram() +
+  xlab("Residuals")
+
+m_bty_gen %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line()
 ```
 
 <div id="exercise">
@@ -298,8 +328,7 @@ still a significant predictor of `score`?  Has the addition of `gender` to the
 model changed the parameter estimate for `bty_avg`?
 </div>
 ```{r summary-mlr-model}
-# type your code for the Exercise here, and Knit
-
+summary(m_bty_gen)
 ```
 
 Note that the estimate for `gender` is now called `gendermale`. You'll see this 
@@ -338,7 +367,8 @@ tenure track, tenured.
 </div>
 ```{r new-mlr-model}
 # type your code for the Exercise here, and Knit
-
+m_bty_rank <- lm(score ~ bty_avg + rank, data = evals)
+summary(m_bty_rank)
 ```
 
 8. Which of the following is the correct order of the three levels of rank if we were to order them from lowest predicted course evaluation score to highest predicted course evaluation score? 
@@ -435,8 +465,10 @@ what does this say about whether or not the dropped variable was collinear with
 the other explanatory variables?
 </div>
 ```{r p-val-select}
-# type your code for the Exercise here, and Knit
-
+m_second <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(m_second)
 ```
 
 Now we try a different model selection method: adjusted $R^2$. Create a new model, 
@@ -446,7 +478,9 @@ adjusted $R^2$ of this new model and compare it to the adjusted $R^2$ of the ful
 ```{r eval=FALSE}
 m1 <- lm(score ~ ethnicity + gender + language + age + cls_perc_eval 
              + cls_students + cls_level + cls_profs + cls_credits + bty_avg, data = evals)
+print('rank')
 summary(m1)$adj.r.squared
+summary(m_full)$adj.r.squared
 ```
 
 Then, try dropping the next variable from the full model (`ethnicity`):
@@ -454,7 +488,9 @@ Then, try dropping the next variable from the full model (`ethnicity`):
 ```{r eval=FALSE}
 m2 = lm(score ~ rank + gender + language + age + cls_perc_eval + 
     cls_students + cls_level + cls_profs + cls_credits + bty_avg, data = evals)
+print('ethnicity')
 summary(m2)$adj.r.squared
+summary(m_full)$adj.r.squared
 ```
 
 <div id="exercise">
@@ -463,8 +499,60 @@ from the full model at a time, and determine removal of which variable yields
 the highest improvement in the adjusted $R^2$.
 </div>
 ```{r adj-rsq-select}
-# type your code for the Exercise here, and Knit
+m <- lm(score ~ rank + ethnicity + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('gender: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
 
+m <- lm(score ~ rank + ethnicity + gender + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('language: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('age: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('cls_perc_eval: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('cls_students: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('cls_level: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('cls_profs: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+print(paste('cls_credits: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits 
+             + pic_outfit + pic_color, data = evals)
+print(paste('bty_avg: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_color, data = evals)
+print(paste('pic_outfit: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
+
+m <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_color, data = evals)
+print(paste('pic_color: ',(summary(m)$adj.r.squared - summary(m_full)$adj.r.squared)))
 ```
 
 10. Elimination of which variable from the full model yielded the highest adjusted R-squared? 
