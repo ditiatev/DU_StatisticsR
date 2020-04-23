@@ -1,0 +1,10 @@
+1. Is this an observational study or an experiment?
+- Observational study
+
+2. The original research question posed in the paper is whether beauty leads directly to the differences in course evaluations. Given the study design, should the question be rephrased? If so, how?
+- Yes, revise wording to “Is there an association between beauty and course evaluations?”
+
+3. Which of the following statements is false about the distribution of score?
+- The left skewness of the data suggests that the students are less likely to rate the professors highly.
+
+4.
