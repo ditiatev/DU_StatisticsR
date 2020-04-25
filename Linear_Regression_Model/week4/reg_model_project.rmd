@@ -15,16 +15,13 @@ output:
 library(ggplot2)
 library(dplyr)
 library(statsr)
+library(GGally)
 ```
 
 ### Load data
 
-Make sure your data and R Markdown files are in the same directory. When loaded
-your data file will be called `movies`. Delete this note when before you submit 
-your work. 
-
 ```{r load-data}
-#load("movies.Rdata")
+load("movies.Rdata")
 ```
 
 
@@ -33,28 +30,182 @@ your work.
 
 ## Part 1: Data
 
+The data set is comprised of 651 randomly sampled movies produced and released before 2016. Sources for this data set were [Rotten Tomatoes](https://www.rottentomatoes.com/) and [IMDB](https://www.imdb.com/) APIs. Since these sources mostly focusing on English-spoken auditory we need to be very careful to generalizable our conclusion for all world population, but we can be more confident about the US, UK, and other English spoken countries. Also, we need to mention that this data set covert for the most part active internet users. We need to be careful to generalize conclusions for the least active internet users, probably, such as old people and others.
+
+Since we do not have an experiment, but observation study, we can consider the only association, and do not can make causal conclusions.
 
 * * *
 
 ## Part 2: Research question
 
-
+Recently, the film market is undergoing serious changes, such companies as Netflix and HBO have brought new ideas / approaches to the market. We are interested in learning what attributes associated with popular moves such as including in moves adult material or very famous actors/actresses and others.
 
 * * *
 
 ## Part 3: Exploratory data analysis
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button above. Make sure that your code is visible in the project you submit. 
-Delete this note when before you submit your work.
+For the very beginning let's see the structure of our data set.
+
+```{r}
+str(movies)
+```
+
+Next, let's see distribution of `imdb_rating`.
+
+```{r}
+movies %>%
+    ggplot(aes(x = imdb_rating)) +
+    geom_histogram(bins = 10) +
+    ggtitle('Distribution of Rating on IMDB')
+```
+
+Distribution of `imdb_rating` is right-skewed with center roughly around 7, 
+hence the most appropriate measure of rating going to be median.
+
+For the next step, let's see how adult material associated with a median rating on IMDB, for that purpose we going to use MPAA rating of the movie `mpaa_rating`.
+
+Descriptive information was got from [Wikipedia](https://en.wikipedia.org/wiki/Motion_Picture_Association_of_America_film_rating_system) page:
+
+MPAA rating                                | Description
+-------------------------------------------| -----------
+G – General Audiences                      | All ages admitted. Nothing that would offend parents for viewing by children.
+PG – Parental Guidance Suggested           | Some material may not be suitable for children. Parents urged to give "parental guidance". May contain some material parents might not like for their young children.
+PG-13 – Parents Strongly Cautioned         | Some material may be inappropriate for children under 13. Parents are urged to be cautious. Some material may be inappropriate for pre-teenagers.
+R – Restricted                             | Under 17 requires accompanying parent or adult guardian. Contains some adult material. Parents are urged to learn more about the film before taking their young children with them.
+NC-17 – Adults Only                        | No One 17 and Under Admitted. Clearly adult. Children are not admitted.
+
+```{r}
+movies$mpaa_rating <- factor(movies$mpaa_rating, 
+                             levels = c("G","PG","PG-13","R","NC-17","Unrated"))
+
+movies %>%
+  select(imdb_rating,mpaa_rating) %>%
+  group_by(mpaa_rating) %>%
+  summarise(x_median = median(imdb_rating)) %>%
+  ggplot(aes(x = mpaa_rating, y = x_median, fill = mpaa_rating)) +
+  geom_col(position = 'dodge') +
+  ggtitle('Median IMDB Rating by MPAA rating')
+
+movies %>%
+  select('imdb_rating','mpaa_rating') %>%
+  group_by(mpaa_rating) %>%
+  summarise(x_bar = mean(imdb_rating), 
+            x_sd = sd(imdb_rating), 
+            x_median = median(imdb_rating), 
+            x_Q1 = quantile(imdb_rating,0.25,type = 1),
+            x_Q3 = quantile(imdb_rating,0.75,type = 1),
+            n = n())
+```
+
+The plot shows that the highest median IMDB rating correspond to 'Unrated' MPAA rating, after folow 'General Audiences' and after that films with some restricted material.
+Let's get a quick view that hiding under 'Unrated' MPAA rating.
+
+```{r}
+movies %>%
+  filter(mpaa_rating == 'Unrated') %>%
+  select(title_type,genre,studio,thtr_rel_year,imdb_rating)
+
+movies %>%
+  select('title_type') %>%
+  sapply(levels)
+```
+
+```{r}
+movies %>%
+  mutate(n_unratead = if_else(mpaa_rating == 'Unrated',1,0)) %>%
+  group_by(genre) %>%
+  summarise(n_total = n(), n_unratead = sum(n_unratead)) %>%
+  filter(n_unratead != 0) %>%
+  mutate(freq = round(n_unratead/n_total*100,2)) %>%
+  print() %>%
+  
+  ggplot(aes(x = reorder(genre, -freq), y = freq, fill = genre)) +
+  geom_col(position = 'dodge') +
+  ggtitle('Distributon Unrated films by genre')
+```
+
 
 * * *
 
 ## Part 4: Modeling
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button above. Make sure that your code is visible in the project you submit. 
-Delete this note when before you submit your work.
+In our data set we have few film rating:
+- Rating on IMDB;
+- Audience score on Rotten Tomatoes;
+- Critics score on Rotten Tomatoes.
+That rating probably collinear, let's check it.
+
+```{r}
+ggpairs(movies, columns = c('imdb_rating', 'critics_score', 'audience_score'))
+```
+
+As aspected, they are collinear, but with it, we can find that Rating on IMDB and Audience score on Rotten Tomatoes is mush close to each other, on the other side Critics score has more differences.
+We going create one average score.
+
+```{r}
+movies %>%
+  mutate(score_avg = (imdb_rating*10 + critics_score  + audience_score)/3)
+```
+
+
+```{r}
+m1 <- lm(audience_score ~ title_type 
+         + genre 
+         + runtime 
+         + mpaa_rating 
+#         + studio
+         + best_actor_win 
+         + best_actress_win 
+         + best_dir_win
+         , data = movies)
+summary(m1)
+```
+
+```{r}
+vars = c("title_type", "genre", "runtime", "mpaa_rating", "studio",
+         "thtr_rel_year", "thtr_rel_month", "thtr_rel_day",
+         "dvd_rel_year", "dvd_rel_month", "dvd_rel_day",
+         #"best_pic_nom", 
+         "best_actor_win", "best_actress_win", "best_dir_win")
+iterations <- 1:length(vars)
+
+
+
+formula_lm <- 'audience_score ~ '
+adjR2 <- 0
+
+for (iter in iterations) {
+  
+  # find next best variables
+  df_best_next_var <- data.frame(var = character(), adjR2 = double(), R2 = double(), stringsAsFactors=FALSE)
+  
+  for (v in vars) {
+    fla <- as.formula(paste(formula_lm,  v, sep = '+'))
+    m <- lm(fla, data = movies)
+    sum_m <- summary(m)
+    df_best_next_var[nrow(df_best_next_var) + 1,] = c(v,sum_m[["adj.r.squared"]],sum_m[["r.squared"]])
+  }
+  
+  # check adjR2
+  best_var <- df_best_next_var %>%
+    slice(which.max(adjR2))
+  if (best_var$adjR2 < adjR2) {break}
+  
+  # update formula
+  adjR2 <- best_var$adjR2
+  formula_lm <- paste(formula_lm, best_var$var, sep = '+')
+    
+  # update available variables
+  vars <- df_best_next_var %>%
+    slice(which(var != best_var$var))
+  vars <- vars$var
+}
+```
+
+```{r}
+formula_lm
+```
+
 
 * * *
 
