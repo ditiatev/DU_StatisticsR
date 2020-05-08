@@ -5,6 +5,9 @@ output:
     fig_height: 4
     highlight: pygments
     theme: spacelab
+    toc: true # table of content true
+    toc_depth: 4  # upto three depths of headings (specified by #, ## and ###)
+    toc_float: true
 ---
 
 ## Setup
@@ -44,178 +47,618 @@ Recently, the film market is undergoing serious changes, such companies as Netfl
 
 ## Part 3: Exploratory data analysis
 
-For the very beginning let's see the structure of our data set.
+For the very beginning let's see rating distributions:
 
-```{r}
-str(movies)
-```
-
-Next, let's see distribution of `imdb_rating`.
+- Rating on IMDB `imdb_rating`
 
 ```{r}
 movies %>%
     ggplot(aes(x = imdb_rating)) +
     geom_histogram(bins = 10) +
     ggtitle('Distribution of Rating on IMDB')
+summary(movies$imdb_rating)
 ```
 
-Distribution of `imdb_rating` is right-skewed with center roughly around 7, 
+Distribution of `imdb_rating` is left-skewed with center around 6.6, 
 hence the most appropriate measure of rating going to be median.
 
-For the next step, let's see how adult material associated with a median rating on IMDB, for that purpose we going to use MPAA rating of the movie `mpaa_rating`.
-
-Descriptive information was got from [Wikipedia](https://en.wikipedia.org/wiki/Motion_Picture_Association_of_America_film_rating_system) page:
-
-MPAA rating                                | Description
--------------------------------------------| -----------
-G – General Audiences                      | All ages admitted. Nothing that would offend parents for viewing by children.
-PG – Parental Guidance Suggested           | Some material may not be suitable for children. Parents urged to give "parental guidance". May contain some material parents might not like for their young children.
-PG-13 – Parents Strongly Cautioned         | Some material may be inappropriate for children under 13. Parents are urged to be cautious. Some material may be inappropriate for pre-teenagers.
-R – Restricted                             | Under 17 requires accompanying parent or adult guardian. Contains some adult material. Parents are urged to learn more about the film before taking their young children with them.
-NC-17 – Adults Only                        | No One 17 and Under Admitted. Clearly adult. Children are not admitted.
-
-```{r}
-movies$mpaa_rating <- factor(movies$mpaa_rating, 
-                             levels = c("G","PG","PG-13","R","NC-17","Unrated"))
-
-movies %>%
-  select(imdb_rating,mpaa_rating) %>%
-  group_by(mpaa_rating) %>%
-  summarise(x_median = median(imdb_rating)) %>%
-  ggplot(aes(x = mpaa_rating, y = x_median, fill = mpaa_rating)) +
-  geom_col(position = 'dodge') +
-  ggtitle('Median IMDB Rating by MPAA rating')
-
-movies %>%
-  select('imdb_rating','mpaa_rating') %>%
-  group_by(mpaa_rating) %>%
-  summarise(x_bar = mean(imdb_rating), 
-            x_sd = sd(imdb_rating), 
-            x_median = median(imdb_rating), 
-            x_Q1 = quantile(imdb_rating,0.25,type = 1),
-            x_Q3 = quantile(imdb_rating,0.75,type = 1),
-            n = n())
-```
-
-The plot shows that the highest median IMDB rating correspond to 'Unrated' MPAA rating, after folow 'General Audiences' and after that films with some restricted material.
-Let's get a quick view that hiding under 'Unrated' MPAA rating.
+- Audience score on Rotten Tomatoes `audience_score`
 
 ```{r}
 movies %>%
-  filter(mpaa_rating == 'Unrated') %>%
-  select(title_type,genre,studio,thtr_rel_year,imdb_rating)
-
-movies %>%
-  select('title_type') %>%
-  sapply(levels)
+    ggplot(aes(x = audience_score)) +
+    geom_histogram(bins = 10) +
+    ggtitle('Distribution of audience score on Rotten Tomatoes')
+summary(movies$audience_score)
 ```
+
+Distribution of `audience_score` is also left-skewed with center around 65, 
+hence the most appropriate measure of rating going to be median.
+
+- Critics score on Rotten Tomatoes `critics_score`
 
 ```{r}
 movies %>%
-  mutate(n_unratead = if_else(mpaa_rating == 'Unrated',1,0)) %>%
-  group_by(genre) %>%
-  summarise(n_total = n(), n_unratead = sum(n_unratead)) %>%
-  filter(n_unratead != 0) %>%
-  mutate(freq = round(n_unratead/n_total*100,2)) %>%
-  print() %>%
-  
-  ggplot(aes(x = reorder(genre, -freq), y = freq, fill = genre)) +
-  geom_col(position = 'dodge') +
-  ggtitle('Distributon Unrated films by genre')
+    ggplot(aes(x = critics_score)) +
+    geom_histogram(bins = 10) +
+    ggtitle('Distribution of critics score on Rotten Tomatoes')
+summary(movies$critics_score)
 ```
+Distribution of `audience_score` is also left-skewed with center around 61, 
+hence the most appropriate measure of rating going to be median.
 
+All of these distributions look roughly similar, probably, it would be a good idea to create an average rating score.
 
 * * *
 
 ## Part 4: Modeling
 
-In our data set we have few film rating:
-- Rating on IMDB;
-- Audience score on Rotten Tomatoes;
-- Critics score on Rotten Tomatoes.
-That rating probably collinear, let's check it.
+### Predict variable
+
+For our next step, let's check collinearity of our ratings.
 
 ```{r}
 ggpairs(movies, columns = c('imdb_rating', 'critics_score', 'audience_score'))
 ```
 
 As aspected, they are collinear, but with it, we can find that Rating on IMDB and Audience score on Rotten Tomatoes is mush close to each other, on the other side Critics score has more differences.
-We going create one average score.
+We going **create one average score**.
 
-```{r}
-movies %>%
+```{r create_score_avg}
+movies <- movies %>%
   mutate(score_avg = (imdb_rating*10 + critics_score  + audience_score)/3)
 ```
 
 
+### Checking conditions for explanatory variables
+
+##### **Categorical variables**
+
+Before we move on, let's check conditions to have more or equal than 5 values in each group for using categorical explanatory variables.
+
+**title_type** - all groups are good.
+
 ```{r}
-m1 <- lm(audience_score ~ title_type 
-         + genre 
-         + runtime 
-         + mpaa_rating 
-#         + studio
-         + best_actor_win 
-         + best_actress_win 
-         + best_dir_win
-         , data = movies)
-summary(m1)
+movies %>%
+  group_by(title_type) %>%
+  summarise(n = n())
 ```
 
+**genre** - all groups are good.
+
 ```{r}
-vars = c("title_type", "genre", "runtime", "mpaa_rating", "studio",
-         "thtr_rel_year", "thtr_rel_month", "thtr_rel_day",
-         "dvd_rel_year", "dvd_rel_month", "dvd_rel_day",
-         #"best_pic_nom", 
-         "best_actor_win", "best_actress_win", "best_dir_win")
-iterations <- 1:length(vars)
+movies %>%
+  group_by(genre) %>%
+  summarise(n = n())
+```
+
+**mpaa_rating** - all groups are good, except "NC-17". So, we should keep in our mind that if `mpaa_rating` gets into our final model and would be significant we must be very careful about making a prediction for that value.
+
+```{r}
+movies %>%
+  group_by(mpaa_rating) %>%
+  summarise(n = n())
+```
+
+**studio** - Not good.
+
+```{r}
+movies %>%
+  group_by(studio) %>%
+  summarise(n = n())
+```
+
+For `studio` we got a lot of inappropriate groups. We should convert that variable. 
+
+```{r cleaning_studio}
+movies <- movies %>% 
+  mutate(studio_mod = case_when(studio == "20th Century Fox Film Corporat" ~ '20th Century Fox',
+                                studio == "20th Century Fox Film Corporation" ~ '20th Century Fox',
+                                studio == "A24" ~ 'A24 Films',
+                                studio == "Buena Vista Distribution Compa" ~ 'Buena Vista',
+                                studio == "Buena Vista Internationa" ~ 'Buena Vista',
+                                studio == "Buena Vista Pictures" ~ 'Buena Vista',
+                                studio == "Columbia Tristar Pictures" ~ 'Columbia Pictures',
+                                studio == "Dreamworks" ~ 'DreamWorks Studios',
+                                studio == "Fox" ~ '20th Century Fox',
+                                studio == "Fox Atomic" ~ '20th Century Fox',
+                                studio == "Fox Searchlight" ~ '20th Century Fox',
+                                studio == "Fox Searchlight Pictures" ~ '20th Century Fox',
+                                studio == "First Run Entertainment" ~ 'First Run Features',
+                                studio == "HBO Documentary" ~ 'HBO',
+                                studio == "HBO Video" ~ 'HBO',
+                                studio == "IFC" ~ 'IFC Films',
+                                studio == "IFC First Take" ~ 'IFC Films',
+                                studio == "IFC Midnight" ~ 'IFC Films',
+                                studio == "Lions Gate Films Inc." ~ 'Lions Gate Films',
+                                studio == "Lions Gate Releasing" ~ 'Lions Gate Films',
+                                studio == "Lionsgate" ~ 'Lions Gate Films',
+                                studio == "LionsGate Entertainment" ~ 'Lions Gate Films',
+                                studio == "Lions Gate Films Inc." ~ 'Lions Gate Films',
+                                studio == "Lionsgate Films" ~ 'Lions Gate Films',
+                                studio == "Lionsgate Releasing" ~ 'Lions Gate Films',
+                                studio == "Magnet Releasing" ~ 'Magnolia Pictures',
+                                studio == "Magnet/Magnolia Pictures" ~ 'Magnolia Pictures',
+                                studio == "MGM Home Entertainment" ~ 'MGM',
+                                studio == "MGM/UA" ~ 'MGM',
+                                studio == "MGM/United Artists" ~ 'MGM',
+                                studio == "Miramax" ~ 'Miramax Films',
+                                studio == "National Geographic Entertainment" ~ 'National Geographic',
+                                studio == "Orion Home Video" ~ 'Orion',
+                                studio == "Orion Pictures" ~ 'Orion',
+                                studio == "Orion Pictures Corporation" ~ 'Orion',
+                                studio == "Paramount Classics" ~ 'Paramount Pictures',
+                                studio == "Paramount" ~ 'Paramount Pictures',
+                                studio == "Paramount Home Video" ~ 'Paramount Pictures',
+                                studio == "Paramount Studios" ~ 'Paramount Pictures',
+                                studio == "Paramount Vantage" ~ 'Paramount Pictures',
+                                studio == "Sony Entertainment" ~ 'Sony Pictures',
+                                studio == "Sony Pictures Classics" ~ 'Sony Pictures',
+                                studio == "Sony Pictures Entertainment" ~ 'Sony Pictures',
+                                studio == "Sony Pictures Home Entertainment" ~ 'Sony Pictures',
+                                studio == "Sony Pictures/Columbia" ~ 'Sony Pictures',
+                                studio == "Sony Pictures/Screen Gems" ~ 'Sony Pictures',
+                                studio == "The Weinstein Co." ~ 'The Weinstein Company',
+                                studio == "Touchstone Home Entertainment" ~ 'Touchstone Pictures',
+                                studio == "TriStar" ~ 'Columbia Pictures',
+                                studio == "TriStar Pictures" ~ 'Columbia Pictures',
+                                studio == "Universal" ~ 'Universal Pictures',
+                                studio == "Universal Studios" ~ 'Universal Pictures',
+                                studio == "Walt Disney Home Entertainment" ~ 'Walt Disney Pictures',
+                                studio == "Walt Disney Productions" ~ 'Walt Disney Pictures',
+                                studio == "Disney" ~ 'Walt Disney Pictures',
+                                studio == "Warner Bros Pictures" ~ 'Warner Bros. Pictures',
+                                studio == "Warner Bros." ~ 'Warner Bros. Pictures',
+                                studio == "WARNER BROTHERS PICTURES" ~ 'Warner Bros. Pictures',
+                                studio == "Warner Home Video" ~ 'Warner Bros. Pictures',
+                                studio == "Warner Independent" ~ 'Warner Bros. Pictures',
+                                studio == "Warner Independent Pictures" ~ 'Warner Bros. Pictures',
+                                studio == "Warners Bros. Pictures" ~ 'Warner Bros. Pictures',
+                                studio == "Twentieth Century Fox Home Entertainment" ~ '20th Century Fox',
+                                is.na(studio) ~ 'Others',
+                                TRUE ~ as.character(studio)))
+
+movies <- movies %>%
+  group_by(studio_mod) %>%
+  mutate(n = n()) %>% 
+  mutate(studio_mod2 = if_else(n < 5, 'Others', studio_mod))
+
+movies %>%
+  group_by(studio_mod2) %>%
+  summarise(n = n())
+```
+
+Finally, we got **`studio_mod2`, where all groups are good.**
+
+**best_pic_nom**  - all groups are good.
+
+```{r}
+movies %>%
+  group_by(best_pic_nom) %>%
+  summarise(n = n())
+```
+
+**best_pic_win**  - all groups are good.
+
+```{r}
+movies %>%
+  group_by(best_pic_win) %>%
+  summarise(n = n())
+```
+
+**best_actor_win**  - all groups are good.
+
+```{r}
+movies %>%
+  group_by(best_actor_win) %>%
+  summarise(n = n())
+```
+
+**best_actress_win** - all groups are good.
+
+```{r}
+movies %>%
+  group_by(best_actress_win) %>%
+  summarise(n = n())
+```
+
+**best_dir_win** - all groups are good.
+
+```{r}
+movies %>%
+  group_by(best_dir_win) %>%
+  summarise(n = n())
+```
 
 
+##### **Numerical variables**
 
-formula_lm <- 'audience_score ~ '
-adjR2 <- 0
+Now let's check numerical explanatory variables.
 
-for (iter in iterations) {
+**runtime** - not good.
+
+```{r}
+movies %>%
+  filter(!is.na(runtime)) %>%
+  ggplot(aes(x = runtime, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('runtime')
+```
+
+The plot doesn't show us a clean relationship between `runtime` and `score_avg`. Probably, we get so trend because of the influential point above 250 minutes. We shouldn't use `runtime` in our prediction model.
+
+**thtr_rel_year** - not good.
+
+```{r}
+movies %>%
+  ggplot(aes(x = thtr_rel_year, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('thtr_rel_year')
+
+movies %>%
+  filter(thtr_rel_year >= 1990) %>%
+  ggplot(aes(x = thtr_rel_year, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('thtr_rel_year after 1990')
+
+m <- lm(score_avg ~ thtr_rel_year, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('thtr_rel_year')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('thtr_rel_year')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('thtr_rel_year')
+
+summary(m)
+```
+
+Plots show us unclear relationship between `thtr_rel_year` and `score_avg`. Also, we can see different trend direction if we use all data (negative) and data after 1990 (positive). At the same time residuals distribution are left-skewed. Considering all this we should not use `thtr_rel_year` in our predict model.
+
+**dvd_rel_year** - not good.
+
+```{r}
+movies %>%
+  filter(!is.na(dvd_rel_year)) %>%
+  ggplot(aes(x = dvd_rel_year, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('dvd_rel_year')
+
+m <- lm(score_avg ~ dvd_rel_year, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('dvd_rel_year')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('dvd_rel_year')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('dvd_rel_year')
+
+summary(m)
+```
+
+Here we get roughly the same picture that `thtr_rel_year` does.
+
+**thtr_rel_month** - not good.
+
+```{r}
+movies %>%
+  ggplot(aes(x = thtr_rel_month, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('thtr_rel_month')
+
+m <- lm(score_avg ~ thtr_rel_month, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('thtr_rel_month')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('thtr_rel_month')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('thtr_rel_month')
+
+summary(m)
+```
+
+Plots show us unclear relationship between `thtr_rel_month` and `score_avg`. At the same time residuals distribution are left-skewed. Considering all this we should not use `thtr_rel_month` in our predict model.
+
+**dvd_rel_month** - not good.
+
+```{r}
+movies %>%
+  filter(!is.na(dvd_rel_month)) %>%
+  ggplot(aes(x = dvd_rel_month, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('dvd_rel_month')
+
+m <- lm(score_avg ~ dvd_rel_month, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('dvd_rel_month')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('dvd_rel_month')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('dvd_rel_month')
+
+summary(m)
+```
+
+Roughly the same picture that `thtr_rel_month` does.
+
+**dvd_rel_day** - not good.
+
+```{r}
+movies %>%
+  filter(!is.na(dvd_rel_day)) %>%
+  ggplot(aes(x = dvd_rel_day, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('dvd_rel_day')
+
+m <- lm(score_avg ~ dvd_rel_day, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('dvd_rel_day')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('dvd_rel_day')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('dvd_rel_day')
+
+summary(m)
+```
+
+Plots show us unclear relationship between `dvd_rel_day` and `score_avg`. At the same time residuals distribution are left-skewed. Considering all this we should not use `dvd_rel_day` in our predict model.
+
+**thtr_rel_day** - not good.
+
+```{r}
+movies %>%
+  filter(!is.na(thtr_rel_day)) %>%
+  ggplot(aes(x = thtr_rel_day, y = score_avg)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") + 
+  ggtitle('thtr_rel_day')
+
+m <- lm(score_avg ~ thtr_rel_day, data = movies)
+
+m %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") + 
+  ggtitle('thtr_rel_day')
+
+m %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram(bins = 30) +
+  xlab("Residuals") + 
+  ggtitle('thtr_rel_day')
+
+m %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() + 
+  ggtitle('thtr_rel_day')
+
+summary(m)
+```
+
+Roughly the same picture that `dvd_rel_day` does.
+
+### Building model
+
+For our next step, let's create a function that can iterate explanatory variably in the process of creating prediction functions. We going to use **adjusted R2 method** for checking usefulness explanatory variables. That method is more computationally intensive, but it is more reliable then p-value method. Also, **forward-selection method** was chosen for the simplification task.
+
+```{r create_lm_function_forvard}
+lm_auto_forvard <- function(lm_data, pred_var, expl_var) {
   
-  # find next best variables
-  df_best_next_var <- data.frame(var = character(), adjR2 = double(), R2 = double(), stringsAsFactors=FALSE)
+  iterations <- 1:length(expl_var)
+  formula_lm <- paste0(pred_var, ' ~ ')
+  adjR2 <- 0
   
-  for (v in vars) {
-    fla <- as.formula(paste(formula_lm,  v, sep = '+'))
-    m <- lm(fla, data = movies)
-    sum_m <- summary(m)
-    df_best_next_var[nrow(df_best_next_var) + 1,] = c(v,sum_m[["adj.r.squared"]],sum_m[["r.squared"]])
+  for (iter in iterations) {
+    # find next best variables
+    df_best_next_var <- data.frame(var = character(), adjR2 = double(), R2 = double(), stringsAsFactors = FALSE)
+    for (v in expl_var) {
+      fla <- as.formula(paste(formula_lm,  v, sep = '+'))
+      m <- lm(fla, data = lm_data)
+      sum_m <- summary(m)
+      df_best_next_var[nrow(df_best_next_var) + 1, ] = c(v, sum_m[["adj.r.squared"]], sum_m[["r.squared"]])
+    }
+    
+    # check adjR2
+    best_var <- df_best_next_var %>%
+      slice(which.max(adjR2))
+    if (best_var$adjR2 < adjR2) {
+      break
+    }
+    
+    # update formula
+    adjR2 <- best_var$adjR2
+    formula_lm <- paste(formula_lm, best_var$var, sep = '+')
+    
+    # update available variables
+    vars <- df_best_next_var %>%
+      slice(which(var != best_var$var))
+    vars <- vars$var
   }
   
-  # check adjR2
-  best_var <- df_best_next_var %>%
-    slice(which.max(adjR2))
-  if (best_var$adjR2 < adjR2) {break}
-  
-  # update formula
-  adjR2 <- best_var$adjR2
-  formula_lm <- paste(formula_lm, best_var$var, sep = '+')
-    
-  # update available variables
-  vars <- df_best_next_var %>%
-    slice(which(var != best_var$var))
-  vars <- vars$var
+  return(lm(formula_lm, data = lm_data))
 }
 ```
 
-```{r}
-formula_lm
+Let's create our predicting model. We going to include good existing explanatory variables we have from our data set, to find which we will use and in which order.
+
+```{r create_predicting_model_1}
+expl_var = c("title_type", "genre", "mpaa_rating", "studio_mod2",
+             "best_pic_nom", "best_pic_win", 
+             "best_actor_win", "best_actress_win", "best_dir_win")
+pred_var = "score_avg"
+
+m_fun <- lm_auto_forvard(lm_data = movies, expl_var = expl_var, pred_var = pred_var)
 ```
 
+**Model diagnostics**
+
+The function we created shows us all explanatory variables are categorical, it's not an easy way to check collinearity for that type of data. We going to stay with this uncertainty. 
+
+```{r}
+m_fun %>%
+  ggplot(aes(x = .resid)) +
+  geom_histogram() +
+  xlab("Residuals") +
+  ggtitle("Histogram of residuals")
+
+m_fun %>%
+  ggplot(aes(sample = .resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("Normal probability plot")
+```
+
+Normal probability plot and histogram of residuals shows us nearly normal residuals with mean 0.
+
+```{r}
+m_fun %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_jitter() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  xlab("score") +
+  ylab("Residuals") +
+  ggtitle('Residuals plots of residuals vs. y^')
+```
+
+Residuals plots of residuals vs. y^ **do not** show us constant variability of residuals. This is something we should be caring about. For low predicting scores, we have wider residual distribution then for high predicting scores.
+
+For next step, let's get summary output for our model.
+
+```{r}
+summary(m_fun)
+```
+
+We got the model that has multiple R-squared equal 0.3518. That means that our model predicts roughly 35% of scores variability can be explained by the model, this is not to mush. Also, we can say that we have a very big residual standard error: 15,17. That means that our 95% confidence level would be roughly 60 score points.
+Which this we should mention that we got pretty low p-value, which means that our model statistical significant.
+
+As we have all categorical explanatory variables, let's make a quick view whish values of those give us the highest expected score:
+
+- "Musical & Performing Arts" for the genre: roughly 19,5 scores.
+- If a movie was nominated for best picture Oscar: roughly 19 scores.
+- "NC-17" mpaa_rating gives roughly 2 additional scores.
+- The documentary type of movie does not have a penalty.
+- Already closes "United Artists" studio would give us roughly 12 scores.
+
+For the next step, let's check ANOVA output.
+
+```{r}
+anova(m_fun)
+```
+
+We got that **except** `studio_mod2` variable all other variables are statistically significant. Return to our beginning questions we can say that our model does not get statistical significant evidence about the relationship between famous "actress/actor" or "studio" and "average move score".
+
+Practically, we got that including in moves adult material is relevant for expected move score, and in our model that variable describes roughly 3% (6199/(49983+9130+6199+2869+2328+5550+140120) = 0.02867531). And studio describes 2,5% of expected movie score.
 
 * * *
 
 ## Part 5: Prediction
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button above. Make sure that your code is visible in the project you submit. 
-Delete this note when before you submit your work.
+Let's make a prediction for "Ford v Ferrari" (2019) movie and compare the result with the average current rating. The data about movie we got from [imdb.com](https://www.imdb.com/title/tt1950186/) and [rottentomatoes.com](https://www.rottentomatoes.com/m/ford_v_ferrari), information about director from [wikipedia.org](https://en.wikipedia.org/wiki/James_Mangold).
+
+```{r}
+ford_v_ferrari <- data.frame(genre = "Drama", 
+                      best_pic_nom = "yes",
+                      mpaa_rating = "PG-13",
+                      best_dir_win = "yes",
+                      title_type = "Feature Film",
+                      studio_mod2 = "20th Century Fox")
+
+predict(m_fun, ford_v_ferrari, interval = "prediction", level = 0.95)
+```
+
+We got pretty hight expected scores, let's check current ratings:
+
+```{r}
+imdb_rating <- 8.1
+critics_score <- 92
+audience_score <- 98
+
+score_avg <- (imdb_rating*10 + critics_score  + audience_score)/3
+print(paste0("Curent averege score for 'Ford v Ferrari' is ", round(score_avg,1) ))
+```
+
+Hence, the model predicts, with 95% confidence, that "Ford v Ferrari" is expected to have an evaluation score between 55.5 and 100. Also, we can mention that for that specific case we got a much more accurate result than we expected on average.
 
 * * *
 
 ## Part 6: Conclusion
 
+To summarize our findings we can make some conclusions. First, we manage to get a statistically significant predicted model for movie scores. Second, the practical significan of our model pretty small - roughly 35%. That would be expected because we do not consider so significant variables which can cotegaraze the budjet of a movie and for example storyline and other potensional very signifant variables. Third, we probably can figure out the significance of including adult material into a movie, also we expectivly find assosiation between studio and average movie score. Firth, unexpectable we do not find practical significance between movie stars and movie scores. Fifth, we tested our model for "Ford v Ferrari" movie and get a very impressive result 86.6 predicted score versus 90.3 current rating, but, maybe, it is just good luck, or, probably, we got here result of more narrow variability of residuals for high predicted scores (roughly above 75).
